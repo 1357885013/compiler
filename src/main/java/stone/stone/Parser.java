@@ -1,8 +1,8 @@
 package stone.stone;
 
-import stone.ast.ASTLeaf;
-import stone.ast.ASTList;
-import stone.ast.ASTree;
+import stone.stone.ast.ASTLeaf;
+import stone.stone.ast.ASTList;
+import stone.stone.ast.ASTree;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
