@@ -1,0 +1,25 @@
+digraph{
+rankdir="LR";
+fontname = "Microsoft YaHei";
+node [shape = circle, fontname = "Microsoft YaHei"];
+edge [fontname = "Microsoft YaHei"];
+-1[style=invis];
+13 [ shape = doublecircle ];
+-1 -> 0;
+12 -> 13[ label = "e" ];
+4 -> 5[ label = "c" ];
+2 -> 3[ label = "b" ];
+7 -> 9[ label = <&epsilon;> ];
+6 -> 7[ label = "d" ];
+5 -> 6[ label = <&epsilon;> ];
+9 -> 11[ label = <&epsilon;> ];
+9 -> 8[ label = <&epsilon;> ];
+3 -> 9[ label = <&epsilon;> ];
+11 -> 12[ label = <&epsilon;> ];
+8 -> 4[ label = <&epsilon;> ];
+8 -> 2[ label = <&epsilon;> ];
+10 -> 11[ label = <&epsilon;> ];
+10 -> 8[ label = <&epsilon;> ];
+1 -> 10[ label = <&epsilon;> ];
+0 -> 1[ label = "a" ];
+}
