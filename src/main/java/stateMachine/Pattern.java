@@ -1,5 +1,6 @@
 package stateMachine;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -11,13 +12,18 @@ public class Pattern {
     private int stateIndex = 0;
     private String regex;
 
-    public static void main(String[] args) {
+    public void print() throws IOException {
+        trans.print();
+    }
+
+    public static void main(String[] args) throws IOException {
         Pattern pattern;
 
 //        pattern = Pattern.compile("((//.*?(\\n|$))|(/\\*.*?\\*/))|([a-zA-Z_][a-zA-Z0-9_]*)|(\\d+)|(\"((\\\\\")|.)*?\")|(\\+\\+|--|\\+=|-\\+|\\*=|/=|&&|\\|\\||!=|==|>=|<=)|(\\{|\\}|\\[|\\]|\\(|\\)|\\+|\\-|\\*|/|=|&|\\||!|:|;|,|<|>|'|\\\"|\\.)|(\\b)");
 //        pattern = Pattern.compile("(\\+\\+|--|\\+=|-\\+|\\*=|/=|&&|\\|\\||!=|==|>=|<=)|(\\{|\\}|\\[|\\]|\\(|\\)|\\+|\\-|\\*|/|=|&|\\||!|:|;|,|<|>|'|\\\"|\\.)");
 //        pattern = Pattern.compile("--|\\+=|-\\+|\\*=|/=|&&|\\|\\||!=|==|>=|<=|\\{|\\}|\\[|\\]|\\(|\\)|\\+|\\-|\\*|/|=|&|\\||!|:|;|,|<|>|'|\\\"|\\.");
-//        pattern = Pattern.compile("a|b|c|aA|bB|cC");
+        pattern = Pattern.compile("a|b|c|aA|bB|cC", true);
+        pattern.print();
 //        pattern = Pattern.compile("(\\+\\+|--)|(\\+=|-\\+|\\*=)");
 //        pattern = Pattern.compile("([ab][AB]*)");  // end上有自旋
         // todo: 有错误
@@ -37,7 +43,7 @@ public class Pattern {
 //        pattern = Pattern.compile("(ca.b)|(.d.s)");
 //        pattern = Pattern.compile("(a|b|[ccc][as]|d)");
 
-         pattern = Pattern.compile("a.*cd", true);
+//        pattern = Pattern.compile("a.*cd", true);
 
 //        testResolveMBrace();
 
@@ -84,7 +90,27 @@ public class Pattern {
         pattern.NFA2DFA2();
         if (debug)
             print(pattern.trans, regex + "   " + "合并状态后");
+        pattern.deleteUselessState();
+        if (debug)
+            print(pattern.trans, regex + "   " + "删除无用状态后");
         return pattern;
+    }
+
+    private void deleteUselessState() {
+        // 删除没有输入边的非start state
+        Map<State, Integer> states = new HashMap<>();
+        for (State leftS : trans.keySet()) {
+            if (!states.containsKey(leftS)) states.put(leftS, 0);
+            for (String input : trans.get(leftS).keySet()) {
+                for (State rightS : trans.get(leftS).get(input)) {
+                    states.put(rightS, states.getOrDefault(rightS, 0) + 1);
+                }
+            }
+        }
+        for (State state : states.keySet()) {
+            if (states.get(state) == 0 && !state.isStart())
+                trans.delete(state);
+        }
     }
 
     private boolean isIntersect(String left, String right) {
@@ -96,75 +122,90 @@ public class Pattern {
         return false;
     }
 
+    private void deleteEmptyInput1(State leftState) {
+        for (State rightState : trans.get(leftState, "_@")) {
+            if (trans.get(rightState).keySet().contains("_@"))
+                deleteEmptyInput1(rightState);
+            trans.add(leftState, trans.get(rightState));
+        }
+        trans.delete(leftState, "_@");
+    }
+
     // 若只有一个空边input就两个合成一个, 若除了空边还有其它边, 就复制右边的到左边,其它不变.
     private void deleteEmptyInput() {
         boolean end;
         do {
             end = true;
             Set<State> transKeys = new HashSet<>(trans.keySet());
-            for (State inState : transKeys) {
-                Map<String, Set<State>> inputToStates = trans.get(inState);
+            for (State leftState : transKeys) {
+                Map<String, Set<State>> inputToStates = trans.get(leftState);
                 Set<String> inputs = new HashSet<>(inputToStates.keySet());
+                // 如果有空边输入
                 if (inputs.contains("_@")) {
-                    HashSet<State> resolved = new HashSet<>();
-                    if (inputs.size() > 1) {
-                        // 把每一个 input 和 回旋相等的都处理完再处理别的.
-                        for (State rightState : trans.get(inState, "_@")) {
-                            for (String targetInput : trans.get(rightState).keySet()) {
-                                if (trans.get(rightState, targetInput).contains(rightState)) {
-                                    if (trans.get(inState).keySet().contains(targetInput)) {
-                                        // 找到了 .* 结构
-                                        // 把除了自旋结构之外的都转移到 inState
-                                        for (String eachInput : trans.get(rightState).keySet()) {
-                                            if (!eachInput.equals(targetInput)) {
-                                                trans.add(inState, eachInput, new HashSet<>(trans.get(rightState, eachInput)));
-                                            }
-                                        }
-                                        resolved.add(rightState);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    String input = "_@";
-                    Set<State> replaceStates = new HashSet<>(inputToStates.get(input));
-                    for (State state : resolved) {
-                        replaceStates.remove(state);
-                    }
-
-                    // 把左右两个状态合成个新的状态
-                    // todo: 左右groupIndex 合成到一个state里的情况
-                    State newState = State.build(stateIndex++, inState, replaceStates);
-
-                    // left : inState
-                    // right : toState
-
-                    trans.delete(inState, "_@");
-                    // 用 新状态替换所有老状态 在 转换表里
-
-                    replaceStates.add(inState);
-
-                    for (State state11 : new HashSet<>(trans.keySet())) {
-                        if (replaceStates.contains(state11)) {
-                            trans.add(newState, trans.get(state11));
-                            trans.delete(state11);
-                        }
-                    }
-
-                    for (State state11 : trans.keySet()) {
-                        for (String input11 : trans.get(state11).keySet()) {
-                            Set<State> toSet = trans.get(state11, input11);
-                            for (State replaceState : replaceStates) {
-                                if (toSet.contains(replaceState)) {
-                                    toSet.removeAll(replaceStates);
-                                    toSet.add(newState);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
+                    // todo:双向空边,就合成一个状态.
+                    deleteEmptyInput1(leftState);
                     end = false;
+
+//                    HashSet<State> resolved = new HashSet<>();
+//                    if (inputs.size() > 1) {
+//                        // 把每一个 input 和 回旋相等的都处理完再处理别的.
+//                        // 这是单向空边, 只复制一下就行.
+//                        for (State rightState : trans.get(leftState, "_@")) {
+//                            for (String targetInput : trans.get(rightState).keySet()) {
+//                                if (trans.get(rightState, targetInput).contains(rightState)) {
+//                                    if (trans.get(leftState).keySet().contains(targetInput)) {
+//                                        // 找到了 .* 结构
+//                                        // 把除了自旋结构之外的都转移到 leftState
+//                                        for (String eachInput : trans.get(rightState).keySet()) {
+//                                            if (!eachInput.equals(targetInput)) {
+//                                                trans.add(leftState, eachInput, new HashSet<>(trans.get(rightState, eachInput)));
+//                                            }
+//                                        }
+//                                        resolved.add(rightState);
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                    String input = "_@";
+//                    Set<State> replaceStates = new HashSet<>(inputToStates.get(input));
+//                    for (State state : resolved) {
+//                        replaceStates.remove(state);
+//                    }
+//
+//                    // 把左右两个状态合成个新的状态
+//                    // todo: 左右groupIndex 合成到一个state里的情况
+//                    State newState = State.build(stateIndex++, leftState, replaceStates);
+//
+//                    // left : leftState
+//                    // right : toState
+//
+//                    trans.delete(leftState, "_@");
+//                    // 用 新状态替换所有老状态 在 转换表里
+//
+//                    replaceStates.add(leftState);
+//
+//                    for (State state11 : new HashSet<>(trans.keySet())) {
+//                        if (replaceStates.contains(state11)) {
+//                            trans.add(newState, trans.get(state11));
+//                            trans.delete(state11);
+//                        }
+//                    }
+//
+//                    for (State state11 : trans.keySet()) {
+//                        for (String input11 : trans.get(state11).keySet()) {
+//                            Set<State> toSet = trans.get(state11, input11);
+//                            for (State replaceState : replaceStates) {
+//                                if (toSet.contains(replaceState)) {
+//                                    toSet.removeAll(replaceStates);
+//                                    toSet.add(newState);
+//                                    break;
+//                                }
+//                            }
+//                        }
+//                    }
+//
+//                    end = false;
                 }
             }
         } while (!end);

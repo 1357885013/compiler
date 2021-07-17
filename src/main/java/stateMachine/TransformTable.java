@@ -1,5 +1,9 @@
 package stateMachine;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.*;
 
 public class TransformTable {
@@ -117,4 +121,43 @@ public class TransformTable {
             }
         }
     }
+
+    public void print() throws IOException {
+        File f = new File("ere/test111.dot");
+        if (f.createNewFile()) {
+            System.out.println("创建文件失败!!!!  " + f.getAbsolutePath());
+            return;
+        }
+        try (OutputStreamWriter output = new OutputStreamWriter(new FileOutputStream(f))) {
+            output.write("digraph{\n" +
+                    "rankdir=\"LR\";\n" +
+                    "fontname = \"Microsoft YaHei\";\n" +
+                    "node [shape = circle, fontname = \"Microsoft YaHei\"];\n" +
+                    "edge [fontname = \"Microsoft YaHei\"];\n");
+            Set<Integer> starts = new HashSet<>();
+            Set<Integer> ends = new HashSet<>();
+
+            for (State leftS : trans.keySet()) {
+                if (leftS.isStart()) starts.add(leftS.getIndex());
+                if (leftS.isEnd()) ends.add(leftS.getIndex());
+                for (String input : trans.get(leftS).keySet()) {
+                    for (State rightS : trans.get(leftS).get(input)) {
+                        if (rightS.isStart()) starts.add(rightS.getIndex());
+                        if (rightS.isEnd()) ends.add(rightS.getIndex());
+                        output.append(String.valueOf(leftS.getIndex())).append(" -> ").append(String.valueOf(rightS.getIndex())).append("[ label = \"").append(input).append("\" ];\n");
+                    }
+                }
+            }
+            for (Integer start : starts) {
+                output.append(String.valueOf(start)).append(" [ style = bold ];\n");
+            }
+            for (Integer end : ends) {
+                output.append(String.valueOf(end)).append(" [ shape = doublecircle ];\n");
+            }
+            output.write("}");
+        }
+
+        CmdUtil.run("dot -T png -O ere/" + f.getName());
+    }
+
 }
