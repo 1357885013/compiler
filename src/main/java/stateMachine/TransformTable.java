@@ -122,11 +122,13 @@ public class TransformTable {
         }
     }
 
+    private static int fileIndex = 1;
+
     public void print() throws IOException {
-        File f = new File("ere/test111.dot");
-        if (f.createNewFile()) {
-            System.out.println("创建文件失败!!!!  " + f.getAbsolutePath());
-            return;
+        String fileName = "ere/my" + fileIndex++ + ".dot";
+        File f = new File(fileName);
+        if (!f.createNewFile()) {
+            System.out.println("文件已存在  " + f.getAbsolutePath());
         }
         try (OutputStreamWriter output = new OutputStreamWriter(new FileOutputStream(f))) {
             output.write("digraph{\n" +
@@ -157,7 +159,7 @@ public class TransformTable {
             output.write("}");
         }
 
-        CmdUtil.run("dot -T png -O ere/" + f.getName());
+        CmdUtil.run("dot -T png -O " + fileName);
     }
 
 }
