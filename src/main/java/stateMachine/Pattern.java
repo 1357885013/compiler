@@ -12,40 +12,41 @@ public class Pattern {
     private String regex;
 
     public void print() {
-        trans.print();
+        trans.draw();
     }
 
     public static void main(String[] args) throws IOException {
         Pattern pattern;
 
-//        pattern = Pattern.compile("((//.*?(\\n|$))|(/\\*.*?\\*/))|([a-zA-Z_][a-zA-Z0-9_]*)|(\\d+)|(\"((\\\\\")|.)*?\")|(\\+\\+|--|\\+=|-\\+|\\*=|/=|&&|\\|\\||!=|==|>=|<=)|(\\{|\\}|\\[|\\]|\\(|\\)|\\+|\\-|\\*|/|=|&|\\||!|:|;|,|<|>|'|\\\"|\\.)|(\\b)");
-//        pattern = Pattern.compile("(\\+\\+|--|\\+=|-\\+|\\*=|/=|&&|\\|\\||!=|==|>=|<=)|(\\{|\\}|\\[|\\]|\\(|\\)|\\+|\\-|\\*|/|=|&|\\||!|:|;|,|<|>|'|\\\"|\\.)");
-//        pattern = Pattern.compile("--|\\+=|-\\+|\\*=|/=|&&|\\|\\||!=|==|>=|<=|\\{|\\}|\\[|\\]|\\(|\\)|\\+|\\-|\\*|/|=|&|\\||!|:|;|,|<|>|'|\\\"|\\.");
-//        pattern = Pattern.compile("a|b|c|aA|bB|cC", true);
-//        pattern = Pattern.compile("(\\+\\+|--)|(\\+=|-\\+|\\*=)");
-//        pattern = Pattern.compile("([ab][AB]*)");  // end上有自旋
+//        pattern = Pattern.compile("((//.*?(\\n|$))|(/\\*.*?\\*/))|([a-zA-Z_][a-zA-Z0-9_]*)|(\\d+)|(\"((\\\\\")|.)*?\")|(\\+\\+|--|\\+=|-\\+|\\*=|/=|&&|\\|\\||!=|==|>=|<=)|(\\{|\\}|\\[|\\]|\\(|\\)|\\+|\\-|\\*|/|=|&|\\||!|:|;|,|<|>|'|\\\"|\\.)|(\\b)", true);
+//        pattern = Pattern.compile("(\\+\\+|--|\\+=|-\\+|\\*=|/=|&&|\\|\\||!=|==|>=|<=)|(\\{|\\}|\\[|\\]|\\(|\\)|\\+|\\-|\\*|/|=|&|\\||!|:|;|,|<|>|'|\\\"|\\.)", true);
+//        pattern = Pattern.compile("--|\\+=|-\\+|\\*=|/=|&&|\\|\\||!=|==|>=|<=|\\{|\\}|\\[|\\]|\\(|\\)|\\+|\\-|\\*|/|=|&|\\||!|:|;|,|<|>|'|\\\"|\\.", true);
+
+//        pattern = Pattern.compile("ca(.|a)*", true);
+
+        pattern = Pattern.compile("a|b|c|aA|bB|cC", true);
+//        pattern = Pattern.compile("(\\+\\+|--)|(\\+=|-\\+|\\*=)", true);
+//        pattern = Pattern.compile("([ab][AB]*)", true);  // end上有自旋
         // todo: 有错误
-//        pattern = Pattern.compile("//.*?(\\n|$)");
-//        pattern = Pattern.compile("([az][az09]*)|(d+)");
-//        pattern = Pattern.compile("b*?ca");
+//        pattern = Pattern.compile("//.*?(\\n|$)", true);
+//        pattern = Pattern.compile("([az][az09]*)|(d+)", true);
+//        pattern = Pattern.compile("b*?ca", true);
         // pattern = Pattern.compile("b*?ca", true);
 //        pattern = Pattern.compile("[^abc]", true);
 //        pattern = Pattern.compile(".+bc", true);
 //        pattern = Pattern.compile("([^abc]1)|([^ade]2)|([^fg]3)|([^ghijklmn]4)|[t]5", true);
         //       pattern = Pattern.compile("([^abc]1)|([^ade]2)|([^fg]3)|([^ghijklmn]4)", true);
-//        pattern = Pattern.compile("ab*?c");
-        pattern = Pattern.compile("ab*(abc)|(ade)", true);
-//        pattern = Pattern.compile("cab*?");
-        // todo: 有错误
-//        pattern = Pattern.compile("ca(.|a)*",true);
-//        pattern = Pattern.compile("(ca.b)|(.d.s)");
-//        pattern = Pattern.compile("(a|b|[ccc][as]|d)");
+//        pattern = Pattern.compile("ab*?c", true);
+//        pattern = Pattern.compile("ab*(abc)|(ade)", true);
+//        pattern = Pattern.compile("cab*?",true);
+//        pattern = Pattern.compile("(ca.b)|(.d.s)", true);
+//        pattern = Pattern.compile("(a|b|[ccc][as]|d)", true);
 
 //        pattern = Pattern.compile("a.*cd", true);
 
 //        testResolveMBrace();
 
-        pattern.print();
+        pattern.trans.draw();
     }
 
     public static void print(TransformTable trans, String stage) {
@@ -76,22 +77,22 @@ public class Pattern {
         pattern.regex = regex;
         pattern.parse(new Expression(regex));
         if (debug)
-            pattern.print();
+            pattern.trans.draw("2_Initial");
         // 先去空边
         pattern.deleteEmptyLine();
         if (debug)
-            pattern.print();
+            pattern.trans.draw("3_DeleteEmptyLine");
         // 顺序处理 . 和 ^[
         pattern.progressDotAndExcept();
         if (debug)
-            pattern.print();
+            pattern.trans.draw("4_ProgressDotAndExcept");
         // 合并同input边, 不用考虑 . 和 ^[
         pattern.uniteMultipleOutputStates();
         if (debug)
-            pattern.print();
+            pattern.trans.draw("5_UniteMultipleOutputStates");
         pattern.deleteUnreachableState();
         if (debug)
-            pattern.print();
+            pattern.trans.draw("6_DeleteUnreachableState");
         return pattern;
     }
 

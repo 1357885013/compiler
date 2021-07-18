@@ -107,13 +107,25 @@ public class TransformTable {
     }
 
     private static int fileIndex = 1;
+    private static File directory = new File("ere/test");
 
-    public void print() {
-        String fileName = "ere/my" + fileIndex++ + ".dot";
+    static {
+        // 先删除所有文件
+        Arrays.stream(Objects.requireNonNull(directory.listFiles())).forEach(File::delete);
+    }
+
+    public void draw() {
+        draw("1_Generate");
+    }
+
+    public void draw(String name) {
+        directory = new File("ere/test");
+
+        String fileName = "ere/test/" + name + fileIndex++ + ".dot";
         File f = new File(fileName);
         try {
             if (!f.createNewFile()) {
-                System.out.println("文件已存在  " + f.getAbsolutePath());
+//                System.out.println("文件已存在  " + f.getAbsolutePath());
             }
 
             try (OutputStreamWriter output = new OutputStreamWriter(new FileOutputStream(f))) {
@@ -148,6 +160,8 @@ public class TransformTable {
             e.printStackTrace();
         }
         CmdUtil.run("dot -T png -O " + fileName);
+        // 删除dot 文件.
+        Arrays.stream(Objects.requireNonNull(directory.listFiles())).filter(ff -> ff.getName().endsWith("dot")).forEach(File::delete);
     }
 
 }
