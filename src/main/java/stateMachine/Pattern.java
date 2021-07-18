@@ -502,8 +502,9 @@ public class Pattern {
                                     // 删除原有的转换路径
                                     trans.delete(inState, input);
                                 } else {
-                                    trans.add(andState, input.substring(i, nodeEnd + 1), State.build(stateIndex));
-                                    andState = State.build(stateIndex++);
+                                    State temp = State.build(stateIndex++);
+                                    trans.add(andState, input.substring(i, nodeEnd + 1), temp);
+                                    andState = temp;
                                 }
                                 i = nodeEnd + 1;
                             } else {
