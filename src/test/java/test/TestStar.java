@@ -1,10 +1,10 @@
-package stateMachine.test;
+package test;
 
 
 import org.junit.jupiter.api.Test;
 import stateMachine.Pattern;
 
-import static stateMachine.TestAll.testEach;
+import static stateMachine.utils.TestUtil.testEach;
 
 class TestStar {
 

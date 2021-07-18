@@ -1,10 +1,10 @@
-package stateMachine.test;
+package test;
 
 
 import org.junit.jupiter.api.Test;
 import stateMachine.Pattern;
 
-import static stateMachine.TestAll.testEach;
+import static stateMachine.utils.TestUtil.testEach;
 
 class TestMidBrace {
 
@@ -21,7 +21,11 @@ class TestMidBrace {
                 new String[]{"d", ""},
                 new String[]{"a", "a|"}
         );
+    }
 
+    @Test
+    public void test2() {
+        Pattern pattern;
         pattern = Pattern.compile("[^abc]");
         testEach(pattern,
                 new String[]{"a", ""},
@@ -32,6 +36,11 @@ class TestMidBrace {
                 new String[]{"f", "f|"}
         );
 
+    }
+
+    @Test
+    public void test3() {
+        Pattern pattern;
         pattern = Pattern.compile("([^abc]1)|([^ade]2)|([^fg]3)|([^ghijklmn]4)|[t]5");
         testEach(pattern,
                 new String[]{"a1", ""},

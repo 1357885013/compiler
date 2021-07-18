@@ -1,8 +1,10 @@
-package stateMachine;
+package stateMachine.utils;
 
 import org.junit.jupiter.api.Assertions;
+import stateMachine.Matcher;
+import stateMachine.Pattern;
 
-public class TestAll {
+public class TestUtil {
     private static int allCount = 0;
     private static int successCount = 0;
     private static int failureCount = 0;
@@ -28,7 +30,7 @@ public class TestAll {
             }
     }
 
-    private static String search(Pattern pattern, String input) {
+    public static String search(Pattern pattern, String input) {
         Matcher matcher = pattern.matcher(input);
         StringBuilder sb = new StringBuilder();
         int pos = 0;

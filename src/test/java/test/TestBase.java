@@ -1,10 +1,10 @@
-package stateMachine.test;
+package test;
 
 
 import org.junit.jupiter.api.Test;
 import stateMachine.Pattern;
 
-import static stateMachine.TestAll.testEach;
+import static stateMachine.utils.TestUtil.testEach;
 
 class TestBase {
 
@@ -36,10 +36,10 @@ class TestBase {
         Pattern pattern;
         pattern = Pattern.compile(".bc|def");
         testEach(pattern,
-                new String[]{"dbc", "dbc|"},
-                new String[]{"abc", "abc|"},
-                new String[]{"cbc", "cbc|"},
-                new String[]{"def", "def|"},
+                new String[]{"dbcef", "dbcef|"},
+                new String[]{"abcef", "abcef|"},
+                new String[]{"dbdef", "dbdef|"},
+                new String[]{"abdef", "abdef|"},
                 new String[]{"", ""},
                 new String[]{"a\nb", ""}
         );
