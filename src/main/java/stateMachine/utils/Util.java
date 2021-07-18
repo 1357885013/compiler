@@ -1,4 +1,4 @@
-package stateMachine;
+package stateMachine.utils;
 
 import java.util.HashMap;
 import java.util.Map;

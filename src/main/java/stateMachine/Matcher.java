@@ -59,13 +59,13 @@ public class Matcher {
         while (loc <= this.end) {
             temp = null;
             input = this.input.charAt(loc);
-            Set<State> nextStateSet = trans.get(nowState, String.valueOf(input));
-            LinkedHashMap<String, Set<State>> inputs = trans.get(nowState);
+            Set<State> nextStateSet = trans.get(nowState, new Expression(new Expression.Node(input, false)));
+            LinkedHashMap<Expression, Set<State>> inputs = trans.get(nowState);
 
             if (nextStateSet == null && trans.get(nowState) != null) {
 
-                for (String input1 : inputs.keySet()) {
-                    if ((input1.charAt(0) == '^' && (!input1.substring(1).contains(String.valueOf(input)))) || input1.equals("_.")) {
+                for (Expression input1 : inputs.keySet()) {
+                    if ((input1.charAt(0).content == '^' && (!input1.substring(1).contains(new Expression(new Expression.Node(input, false))))) || input1.equalsKeyword('.')) {
                         nextStateSet = trans.get(nowState, input1);
                         break;
                     }

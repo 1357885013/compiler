@@ -3,7 +3,6 @@ package stateMachine;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class Pattern {
     //state change table : state - > chat - > set(state)
@@ -12,7 +11,7 @@ public class Pattern {
     private int stateIndex = 0;
     private String regex;
 
-    public void print() throws IOException {
+    public void print() {
         trans.print();
     }
 
@@ -22,8 +21,7 @@ public class Pattern {
 //        pattern = Pattern.compile("((//.*?(\\n|$))|(/\\*.*?\\*/))|([a-zA-Z_][a-zA-Z0-9_]*)|(\\d+)|(\"((\\\\\")|.)*?\")|(\\+\\+|--|\\+=|-\\+|\\*=|/=|&&|\\|\\||!=|==|>=|<=)|(\\{|\\}|\\[|\\]|\\(|\\)|\\+|\\-|\\*|/|=|&|\\||!|:|;|,|<|>|'|\\\"|\\.)|(\\b)");
 //        pattern = Pattern.compile("(\\+\\+|--|\\+=|-\\+|\\*=|/=|&&|\\|\\||!=|==|>=|<=)|(\\{|\\}|\\[|\\]|\\(|\\)|\\+|\\-|\\*|/|=|&|\\||!|:|;|,|<|>|'|\\\"|\\.)");
 //        pattern = Pattern.compile("--|\\+=|-\\+|\\*=|/=|&&|\\|\\||!=|==|>=|<=|\\{|\\}|\\[|\\]|\\(|\\)|\\+|\\-|\\*|/|=|&|\\||!|:|;|,|<|>|'|\\\"|\\.");
-        pattern = Pattern.compile("a|b|c|aA|bB|cC", true);
-        pattern.print();
+//        pattern = Pattern.compile("a|b|c|aA|bB|cC", true);
 //        pattern = Pattern.compile("(\\+\\+|--)|(\\+=|-\\+|\\*=)");
 //        pattern = Pattern.compile("([ab][AB]*)");  // end上有自旋
         // todo: 有错误
@@ -36,10 +34,10 @@ public class Pattern {
 //        pattern = Pattern.compile("([^abc]1)|([^ade]2)|([^fg]3)|([^ghijklmn]4)|[t]5", true);
         //       pattern = Pattern.compile("([^abc]1)|([^ade]2)|([^fg]3)|([^ghijklmn]4)", true);
 //        pattern = Pattern.compile("ab*?c");
-//        pattern = Pattern.compile("ab*(abc)|(ade)");
+        pattern = Pattern.compile("ab*(abc)|(ade)", true);
 //        pattern = Pattern.compile("cab*?");
         // todo: 有错误
-//        pattern = Pattern.compile("ca(.|a)*");
+//        pattern = Pattern.compile("ca(.|a)*",true);
 //        pattern = Pattern.compile("(ca.b)|(.d.s)");
 //        pattern = Pattern.compile("(a|b|[ccc][as]|d)");
 
@@ -47,13 +45,14 @@ public class Pattern {
 
 //        testResolveMBrace();
 
+        pattern.print();
     }
 
     public static void print(TransformTable trans, String stage) {
         System.out.println("-----------  " + stage);
         for (State s : trans.keySet()) {
             System.out.println(s);
-            for (String s1 : trans.get(s).keySet()) {
+            for (Expression s1 : trans.get(s).keySet()) {
                 System.out.println("   " + s1 + "     " + Arrays.toString(trans.get(s).get(s1).toArray()));
             }
         }
@@ -75,24 +74,24 @@ public class Pattern {
     public static Pattern compile(String regex, boolean debug) {
         Pattern pattern = new Pattern();
         pattern.regex = regex;
-        pattern.parse(regex);
+        pattern.parse(new Expression(regex));
         if (debug)
-            print(pattern.trans, regex + "   " + "DFA");
+            pattern.print();
         // 先去空边
         pattern.deleteEmptyInput();
         if (debug)
-            print(pattern.trans, regex + "   " + "去空边后");
+            pattern.print();
         // 顺序处理 . 和 ^[
         pattern.NFA2DFA1();
         if (debug)
-            print(pattern.trans, regex + "   " + ". and [^ 后");
+            pattern.print();
         // 合并同input边, 不用考虑 . 和 ^[
         pattern.NFA2DFA2();
         if (debug)
-            print(pattern.trans, regex + "   " + "合并状态后");
+            pattern.print();
         pattern.deleteUselessState();
         if (debug)
-            print(pattern.trans, regex + "   " + "删除无用状态后");
+            pattern.print();
         return pattern;
     }
 
@@ -101,7 +100,7 @@ public class Pattern {
         Map<State, Integer> states = new HashMap<>();
         for (State leftS : trans.keySet()) {
             if (!states.containsKey(leftS)) states.put(leftS, 0);
-            for (String input : trans.get(leftS).keySet()) {
+            for (Expression input : trans.get(leftS).keySet()) {
                 for (State rightS : trans.get(leftS).get(input)) {
                     states.put(rightS, states.getOrDefault(rightS, 0) + 1);
                 }
@@ -114,7 +113,7 @@ public class Pattern {
     }
 
     private boolean isIntersect(String left, String right) {
-        if (left.equals(right) || left.equals("_.") || right.equals("_.")) return true;
+        if (left.equals(right) || left.equals(Expression.dot) || right.equals(Expression.dot)) return true;
         if (left.charAt(0) == '^' && right.charAt(0) == '^') return false;
         if (left.charAt(0) == '^' && right.length() == 1 && right.charAt(0) == left.charAt(1)) return false;
         if (right.charAt(0) == '^' && left.length() == 1 && left.charAt(0) == right.charAt(1)) return false;
@@ -123,12 +122,12 @@ public class Pattern {
     }
 
     private void deleteEmptyInput1(State leftState) {
-        for (State rightState : trans.get(leftState, "_@")) {
-            if (trans.get(rightState).keySet().contains("_@"))
+        for (State rightState : trans.get(leftState, Expression.emptyInput)) {
+            if (trans.get(rightState).keySet().contains(Expression.emptyInput))
                 deleteEmptyInput1(rightState);
             trans.add(leftState, trans.get(rightState));
         }
-        trans.delete(leftState, "_@");
+        trans.delete(leftState, Expression.emptyInput);
     }
 
     // 若只有一个空边input就两个合成一个, 若除了空边还有其它边, 就复制右边的到左边,其它不变.
@@ -138,10 +137,10 @@ public class Pattern {
             end = true;
             Set<State> transKeys = new HashSet<>(trans.keySet());
             for (State leftState : transKeys) {
-                Map<String, Set<State>> inputToStates = trans.get(leftState);
-                Set<String> inputs = new HashSet<>(inputToStates.keySet());
+                Map<Expression, Set<State>> inputToStates = trans.get(leftState);
+                Set<Expression> inputs = new HashSet<>(inputToStates.keySet());
                 // 如果有空边输入
-                if (inputs.contains("_@")) {
+                if (inputs.contains(Expression.emptyInput)) {
                     // todo:双向空边,就合成一个状态.
                     deleteEmptyInput1(leftState);
                     end = false;
@@ -150,7 +149,7 @@ public class Pattern {
 //                    if (inputs.size() > 1) {
 //                        // 把每一个 input 和 回旋相等的都处理完再处理别的.
 //                        // 这是单向空边, 只复制一下就行.
-//                        for (State rightState : trans.get(leftState, "_@")) {
+//                        for (State rightState : trans.get(leftState, Expression.emptyInput)) {
 //                            for (String targetInput : trans.get(rightState).keySet()) {
 //                                if (trans.get(rightState, targetInput).contains(rightState)) {
 //                                    if (trans.get(leftState).keySet().contains(targetInput)) {
@@ -180,7 +179,7 @@ public class Pattern {
 //                    // left : leftState
 //                    // right : toState
 //
-//                    trans.delete(leftState, "_@");
+//                    trans.delete(leftState, Expression.emptyInput);
 //                    // 用 新状态替换所有老状态 在 转换表里
 //
 //                    replaceStates.add(leftState);
@@ -227,7 +226,7 @@ public class Pattern {
 
         // 统计指向某状态的边的数量
         for (State state : trans.keySet()) {
-            for (String input : trans.get(state).keySet()) {
+            for (Expression input : trans.get(state).keySet()) {
                 for (State toState : trans.get(state, input)) {
                     HashSet<State> states = allInStates.get(toState);
                     // 结束状态只有输入没有输出
@@ -238,22 +237,22 @@ public class Pattern {
         }
 
         Set<State> all = null;
-        Set<String> excepts = new HashSet<>();
+        Set<Expression> excepts = new HashSet<>();
         do {
             if (trans.get(nowState) != null) {
                 all = null;
                 excepts.clear();
-                for (String input : trans.get(nowState).keySet()) {
+                for (Expression input : trans.get(nowState).keySet()) {
                     // 是欠处理的边不?
                     // 是 .
-                    if (input.equals("_.")) {
+                    if (input.equalsKeyword('.')) {
                         all = trans.get(nowState, input);
                         // 是 ^
-                    } else if (input.charAt(0) == '^') {
+                    } else if (input.charAt(0).equalsKeyword('^')) {
                         excepts.add(input.substring(1));
-                        for (String rightInput : trans.get(nowState).keySet()) {
+                        for (Expression rightInput : trans.get(nowState).keySet()) {
                             // 不是本身 且 不是 .  不是 ^
-                            if (!rightInput.equals(input) && rightInput.charAt(0) != '^' && !rightInput.equals("_."))
+                            if (!rightInput.equals(input) && !rightInput.charAt(0).equalsKeyword('^') && !rightInput.equalsKeyword('.'))
                                 // 如果相交
                                 if (!input.substring(1).contains(rightInput))
                                     // 全部挨个转移
@@ -266,30 +265,31 @@ public class Pattern {
                 }
                 // 处理 所有 ^,
                 // 计算新的 总的
-                if (excepts.size() > 1) {
-
-                    State finalNowState = nowState;
-                    String expectAll = "^" + excepts.stream().flatMap(a -> Stream.of(a.split(""))).distinct().sorted().collect(Collectors.joining(""));
-                    trans.add(nowState, expectAll, excepts.stream().flatMap(a -> (trans.get(finalNowState, "^" + a).stream())).collect(Collectors.toSet()));
-                    for (String except : excepts) {
-                        String key = "^" + excepts.stream().filter(a -> !a.equals(except)).flatMap(a -> Stream.of(a.split(""))).distinct().sorted().collect(Collectors.joining(""));
-                        Set<State> value = excepts.stream().filter(a -> !a.equals(except)).flatMap(a -> (trans.get(finalNowState, "^" + a).stream())).collect(Collectors.toSet());
-                        trans.add(nowState, key, value);
-                    }
-                    for (String except : excepts) {
-                        // 删除后重新添加,让它排在后面
-                        trans.add(nowState, "^" + except, trans.delete(nowState, "^" + except));
-                    }
-                }
+                //todo:
+//                if (excepts.size() > 1) {
+//
+//                    State finalNowState = nowState;
+//                    String expectAll = "^" + excepts.stream().flatMap(a -> Stream.of(a.contents)).distinct().sorted().collect(Collectors.joining(""));
+//                    trans.add(nowState, expectAll, excepts.stream().flatMap(a -> (trans.get(finalNowState, "^" + a).stream())).collect(Collectors.toSet()));
+//                    for (Expression except : excepts) {
+//                        String key = "^" + excepts.stream().filter(a -> !a.equals(except)).flatMap(a -> Stream.of(a.split(""))).distinct().sorted().collect(Collectors.joining(""));
+//                        Set<State> value = excepts.stream().filter(a -> !a.equals(except)).flatMap(a -> (trans.get(finalNowState, "^" + a).stream())).collect(Collectors.toSet());
+//                        trans.add(nowState, key, value);
+//                    }
+//                    for (Expression except : excepts) {
+//                        // 删除后重新添加,让它排在后面
+//                        trans.add(nowState, "^" + except, trans.delete(nowState, "^" + except));
+//                    }
+//                }
                 // 处理 .
-                Set<State> allState = trans.get(nowState, "_.");
+                Set<State> allState = trans.get(nowState, Expression.dot);
                 if (all != null) {
-                    for (String input : new HashSet<>(trans.get(nowState).keySet())) {
-                        if (!input.equals("_."))
+                    for (Expression input : new HashSet<>(trans.get(nowState).keySet())) {
+                        if (!input.equalsKeyword('.'))
                             trans.add(nowState, input, allState);
                     }
                     // 删除后重新添加,让它排在后面
-                    trans.add(nowState, "_.", trans.delete(nowState, "_."));
+                    trans.add(nowState, Expression.dot, trans.delete(nowState, Expression.dot));
                 }
             }
             resolved.put(nowState, true);
@@ -322,9 +322,9 @@ public class Pattern {
             Set<State> transKeys = new HashSet<>(trans.keySet());
             out:
             for (State inState : transKeys) {
-                Map<String, Set<State>> inputToStates = trans.get(inState);
-                Set<String> inputToStatesKeys = new HashSet<>(inputToStates.keySet());
-                for (String input : inputToStatesKeys) {
+                Map<Expression, Set<State>> inputToStates = trans.get(inState);
+                Set<Expression> inputToStatesKeys = new HashSet<>(inputToStates.keySet());
+                for (Expression input : inputToStatesKeys) {
                     Set<State> oldStates = inputToStates.get(input);
                     // 如果一个状态一个输入有多个输出
                     if (oldStates.size() > 1) {
@@ -349,7 +349,7 @@ public class Pattern {
                         for (State oldState : new HashSet<>(oldStates)) {
                             if (trans.get(oldState) != null)
                                 // 转移输出
-                                for (String in : trans.get(oldState).keySet()) {
+                                for (Expression in : trans.get(oldState).keySet()) {
                                     trans.add(newState, in, trans.get(oldState, in));
                                 }
                         }
@@ -367,7 +367,67 @@ public class Pattern {
         } while (!end);
     }
 
-    public void parse(String regex) {
+    private int findMidBraceEnd(Expression e, int begin) {
+        if (e.charAt(begin).equalsKeyword('[')) {
+            Expression.Node now;
+            while (!(now = e.charAt(++begin)).isEmpty) {
+                if (now.equalsKeyword(']'))
+                    return begin;
+            }
+        }
+        return begin;
+    }
+
+    private int findBraceEnd(Expression e, int begin) {
+        Stack<Boolean> braces = new Stack<Boolean>();
+        if (e.charAt(begin).equalsKeyword('(')) {
+            braces.push(true);
+            begin++;
+            Expression.Node now;
+            while (!(now = e.charAt(begin++)).isEmpty) {
+                if (now.equalsKeyword('('))
+                    braces.add(true);
+                else if (now.equalsKeyword(')')) {
+                    if (braces.peek()) {
+                        braces.pop();
+                        if (braces.empty())
+                            return begin - 1;
+                    }
+                }
+            }
+        }
+        return begin;
+    }
+
+    private int findOrEnd(Expression e, int begin) {
+        while (true) {
+            begin = findNodeEnd(e, begin);
+            Expression.Node next = e.charAt(begin + 1);
+            if (next.isEmpty || !next.equalsKeyword('|'))
+                return begin;
+            else
+                begin+=2;
+        }
+    }
+
+    private int findNodeEnd(Expression e, int begin) {
+        if (e.charAt(begin).equalsKeyword('(')) {
+            begin = findBraceEnd(e, begin);
+        } else if (e.charAt(begin).equalsKeyword('['))
+            begin = findMidBraceEnd(e, begin);
+        Expression.Node now = e.charAt(begin + 1);
+        Expression.Node next = e.charAt(begin + 2);
+        if (now.equalsKeyword('*') || now.equalsKeyword('+')) {
+            if (next.equalsKeyword('?'))
+                begin += 2;
+            else
+                begin++;
+        } else if (now.equalsKeyword('?'))
+            begin++;
+        return begin;
+    }
+
+    public void parse(Expression regex) {
 //        System.out.println("------ " + regex);
         // 初始化
         trans = new TransformTable(regex);
@@ -378,280 +438,131 @@ public class Pattern {
             end = true;
             Set<State> transKeys = new HashSet<>(trans.keySet());
             for (State inState : transKeys) {
-                Map<String, Set<State>> inputToStates = trans.get(inState);
-                Set<String> inputToStatesKeys = new HashSet<>(inputToStates.keySet());
+                Map<Expression, Set<State>> inputToStates = trans.get(inState);
+                Set<Expression> inputToStatesKeys = new HashSet<>(inputToStates.keySet());
                 input:
-                for (String input : inputToStatesKeys) {
+                for (Expression input : inputToStatesKeys) {
                     Set<State> toState = inputToStates.get(input);
-                    String inputO = input;
+
                     boolean handled = false;
+                    boolean and = false;
                     if (canSplit(input)) {
-                        // []*  |  ()
-//                        input = input.trim();
-                        Stack<String> stack = new Stack<>();
-                        boolean or = false;
-                        boolean isMBrace = false;
-                        for (int i = 0; i < input.length(); i++) {
-                            char c = input.charAt(i);
+                        end = false;
+                        State andState = inState;
+                        for (int i = 0; i < input.contents.length; ) {
+                            int nodeEnd = findNodeEnd(input, i);
 
-                            if (c == '(' && ((i > 0 && input.charAt(i - 1) != '\\') || i == 0)) {
-                                stack.push("(");
-                            } else if (input.charAt(i) == ')' && i > 0 && input.charAt(i - 1) != '\\') {
-
-                                if (stack.size() > 0 && stack.peek().equals("("))
-                                    stack.pop();
-                                else {
-                                    System.out.println(inputO);
-                                    System.out.println(input);
-                                    System.out.println("第" + (i - 1) + "位这里的右括号没有左括号匹配");
-                                    return;
+                            // 整个都是括号
+                            if (i == 0 && nodeEnd == input.length() - 1 && input.charAt(nodeEnd).equalsKeyword(')')) {
+                                trans.add(inState, input.substring(1, input.length() - 1), new HashSet<>(trans.get(inState, input)));
+                                inState.addGroupIndex(stateGroupIndex);
+                                for (State state : trans.get(inState, input)) {
+                                    state.addGroupIndex(stateGroupIndex);
                                 }
-                                // 去最外层括号 , 同时给这个input的左右状态都加上相同的group编号
-                                if (!handled && i == input.length() - 1 && input.charAt(0) == '(') {
-                                    trans.add(inState, input.substring(1, input.length() - 1), new HashSet<>(trans.get(inState, inputO)));
-                                    inState.addGroupIndex(stateGroupIndex);
-                                    for (State state : trans.get(inState, inputO)) {
-                                        state.addGroupIndex(stateGroupIndex);
-                                    }
-                                    stateGroupIndex++;
-
-                                    trans.delete(inState, inputO);
-                                    end = false;
-                                    continue input;
-                                }
-                                continue;
+                                stateGroupIndex++;
+                                trans.delete(inState, input);
                             }
-                            // 刚匹配到括号还能进一次循环, 之后就不能了
-                            if (!((stack.size() == 0) || (stack.size() == 1 && c == '(' && i != 0))) continue;
 
-                            // [] 内众生平等
-                            if (c == '[' && ((i > 0 && input.charAt(i - 1) != '\\') || i == 0)) {
-                                isMBrace = true;
-                                continue;
-                            } else if (isMBrace) {
-                                if (input.charAt(i) == ']') {
-                                    isMBrace = false;
-                                }
-                                // 有 [ 没被匹配就直接跳过
-                                continue;
-                            }
-                            // or 结构
-                            if (stack.empty() && input.charAt(i) == '|' && i > 0 && input.charAt(i - 1) != '\\') {
-                                or = true;
-//                                inputToStates.put(input.substring(0, i), new HashSet<>(toState));
-                                // 如果toState里有 endState且endState没有任何转换路径
-                                for (State state : toState) {
-                                    if (state.isEnd() && (trans.get(state) == null || trans.get(state).size() == 0)) {
-                                        // 把endState 换成一个新的
-                                        trans.add(inState, input.substring(0, i), new State(stateIndex++, state));
-                                    } else
-                                        // 直接添加
-                                        trans.add(inState, input.substring(0, i), state);
-                                }
-                                input = input.substring(i + 1);
-                                i = -1;
-                                handled = true;
-                            }
-                        }
-                        // and 结构
-                        String inputOO = input;
-                        if (!or) {
-                            boolean leftBrace = false;
-                            stack.clear();
-                            Set<Character> endChar = new HashSet<>(Arrays.asList('?', '*', '+', '{'));
-                            State leftState = inState;
-                            isMBrace = false;
-                            for (int i = 0; i < input.length(); i++) {
-                                char c = input.charAt(i);
-                                if (c == '(' && ((i > 0 && input.charAt(i - 1) != '\\') || i == 0)) {
-                                    stack.push("(");
-                                } else if (c == ')' && i > 0 && input.charAt(i - 1) != '\\') {
-                                    if (stack.peek().equals("("))
-                                        stack.pop();
-                                    else {
-                                        System.out.println(inputO);
-                                        System.out.println(input);
-                                        System.out.println("第" + (i - 1) + "位这里的右括号没有左括号匹配");
-                                        return;
-                                    }
-                                    // 括号栈为空 , 说明匹配成功
-                                    if (stack.size() == 0) {
-                                        //  (da){0,3}  这种情况 和 . * +
-                                        if (i + 1 < input.length() && endChar.contains(input.charAt(i + 1))) {
-                                            int endIndex = getSuffixEndIndex(input, i + 1);
-                                            trans.add(leftState, input.substring(0, endIndex + 1), State.build(stateIndex));
-                                            leftState = State.build(stateIndex++);
-                                            input = input.substring(endIndex + 1);
-                                            i = -1;
-                                            handled = true;
-                                        } else {
-                                            // 光秃秃括号情况
-                                            trans.add(leftState, input.substring(1, i), State.build(stateIndex));
-                                            leftState = State.build(stateIndex++);
-                                            input = input.substring(i + 1);
-                                            i = -1;
-                                            handled = true;
+                            Expression.Node next = input.charAt(nodeEnd + 1);
+                            // 如果是 OR 结构
+                            if (next.equalsKeyword('|')) {
+                                // 把 OR 部分看成AND的子部分, 直接统一处理了
+                                nodeEnd = findOrEnd(input, nodeEnd + 2);
+                                // 如果整个式子都是 OR 结构
+                                if (!and && nodeEnd == input.length() - 1) {
+                                    // 处理 OR
+
+                                    for (int j = 0; j < input.contents.length; ) {
+                                        nodeEnd = findNodeEnd(input, j);
+//                                        trans.add(inState, input.substring(j, nodeEnd + 1), new HashSet<>(trans.get(inState, input)));
+                                        // 如果toState里有 endState且endState没有任何转换路径
+                                        for (State state : trans.get(inState, input)) {
+                                            if (state.isEnd() && (trans.get(state) == null || trans.get(state).size() == 0)) {
+//                                                 把endState 换成一个新的
+                                                trans.add(inState, input.substring(j, nodeEnd + 1), new State(stateIndex++, state));
+                                            } else
+//                                                 直接添加
+                                                trans.add(inState, input.substring(j, nodeEnd + 1), state);
                                         }
+                                        j = nodeEnd + 2;
                                     }
+                                    // 删除原有的转换路径
+                                    trans.delete(inState, input);
+                                    break;
                                 }
-                                // 还在括号里就继续
-                                if (!((stack.size() == 0) || (stack.size() == 1 && c == '(' && i != 0))) continue;
-
-                                // 中括号
-                                if (c == '[' && ((i > 0 && input.charAt(i - 1) != '\\') || i == 0)) {
-                                    isMBrace = true;
-                                    continue;
-                                } else if (isMBrace) {
-                                    if (input.charAt(i) == ']') {
-                                        isMBrace = false;
-                                        // 后面有 限定符
-                                        if (i + 1 < input.length() && endChar.contains(input.charAt(i + 1))) {
-                                            int endIndex = getSuffixEndIndex(input, i + 1);
-                                            // 判断是不是占一整行 , 不是的话进入
-                                            if (handled || endIndex != input.length() - 1) {
-                                                if (endIndex == input.length() - 1)
-                                                    trans.add(leftState, input.substring(0, endIndex + 1), new HashSet<>(inputToStates.get(inputOO)));
-                                                else
-                                                    trans.add(leftState, input.substring(0, endIndex + 1), State.build(stateIndex));
-                                                leftState = State.build(stateIndex++);
-                                                input = input.substring(endIndex + 1);
-                                                i = -1;
-                                                handled = true;
-                                            }
-                                        }
-                                        // 光秃秃括号情况
-                                        // 判断是不是占一整行 , 不是的话进入
-                                        else if (handled || i != input.length() - 1) {
-                                            // 判断是不是结束
-                                            if (i == input.length() - 1)
-                                                trans.add(leftState, input.substring(0, i + 1), new HashSet<>(inputToStates.get(inputOO)));
-                                            else
-                                                trans.add(leftState, input.substring(0, i + 1), State.build(stateIndex));
-                                            leftState = State.build(stateIndex++);
-                                            input = input.substring(i + 1);
-                                            i = -1;
-                                            handled = true;
-                                        }
-                                    }
-                                    continue;
-                                }
-
-                                // 找到了限定符 {} * + .
-                                if (endChar.contains(c) && i > 0 && input.charAt(i - 1) != '\\') {
-                                    int endIndex = getSuffixEndIndex(input, i);
-                                    if (handled || endIndex != input.length() - 1) {
-                                        if (endIndex == input.length() - 1)
-                                            trans.add(leftState, input.substring(0, endIndex + 1), new HashSet<>(inputToStates.get(inputOO)));
-                                        else
-                                            trans.add(leftState, input.substring(0, endIndex + 1), State.build(stateIndex));
-                                        leftState = State.build(stateIndex++);
-                                        input = input.substring(endIndex + 1);
-                                        i = -1;
-                                        handled = true;
-                                    } else {
-                                        break;
-                                    }
-                                }
-
-                                // 单字符 与,
-                                // 如果是最后一位  或者是  \.
-                                if ((i == 0 && input.length() == 1) || (i == 1 && input.length() == 2 && input.charAt(0) == '\\')) {
-                                    trans.add(leftState, input, new HashSet<>(inputToStates.get(inputOO)));
-                                    input = "";
-                                    i = 0;
-                                    handled = true;
-                                }
-                                // 如果不是最后一位
-                                else if ((i > 0) && input.charAt(i - 1) != '\\') {
-                                    trans.add(leftState, input.substring(0, i), State.build(stateIndex));
-                                    leftState = State.build(stateIndex++);
-                                    input = input.substring(i);
-                                    i = (input.length() == 1) ? -1 : 0;
-                                    handled = true;
-                                }
-                                // 输出中间步骤
-//                                print(trans,input);
                             }
-                        } else {
-                            // 处理 or 结构的最后一部分
-
-                            // 如果toState里有 endState且endState没有任何转换路径
-                            for (State state : toState) {
-                                if (state.isEnd() && (trans.get(state) == null || trans.get(state).size() == 0)) {
-                                    // 把endState 换成一个新的
-                                    trans.add(inState, input, new State(stateIndex++, state));
-                                } else
-                                    // 直接添加
-                                    trans.add(inState, input, state);
-                            }
-                            // 删除原有的转换路径
-                            trans.delete(inState, inputO);
-                        }
-
-                        // 不是 or 也 不是 and
-                        if (!handled) {
-                            // 最外层有一层括号
-
-                            if ((input.endsWith("*") && input.charAt(input.length() - 2) != '\\')) {
-                                // 有状态的输出复制到左状态上, 右状态上加自旋, x* 改成x
-                                String baseInput = input.substring(0, input.length() - 1);
-                                for (State rightState : trans.get(inState, input)) {
-                                    trans.add(rightState, baseInput, rightState);
-                                }
-                                trans.add(inState, baseInput, new HashSet<>(trans.get(inState, input)));
-                                trans.add(inState, "_@", new HashSet<>(trans.get(inState, input)));
-                                trans.delete(inState, input);
-                                end = false;
-                            } else if ((input.endsWith("*?") && input.charAt(input.length() - 3) != '\\')) {
-                                String baseInput = input.substring(0, input.length() - 2);
-                                for (State rightState : trans.get(inState, input)) {
-                                    trans.add(rightState, baseInput, rightState);
-                                }
-                                trans.add(inState, baseInput, new HashSet<>(trans.get(inState, input)));
-                                trans.add(inState, "_@", new HashSet<>(trans.get(inState, input)));
-                                trans.delete(inState, input);
-                                end = false;
-                            } else if ((input.endsWith("?") && input.charAt(input.length() - 2) != '\\')) {
-                                trans.add(inState, input.substring(0, input.length() - 1), new HashSet<>(trans.get(inState, input)));
-                                trans.add(inState, "_@", new HashSet<>(trans.get(inState, input)));
-                                trans.delete(inState, input);
-                                end = false;
-                            } else if (input.endsWith("+?") && input.charAt(input.length() - 3) != '\\') {
-                                trans.add(inState, input.substring(0, input.length() - 2), new HashSet<>(trans.get(inState, input)));
-                                // 结束状态 自旋
-                                for (State s : trans.get(inState, input))
-                                    trans.add(s, input.substring(0, input.length() - 2), s);
-                                trans.delete(inState, input);
-                                end = false;
-                            } else if (input.endsWith("+") && input.charAt(input.length() - 2) != '\\') {
-                                trans.add(inState, input.substring(0, input.length() - 1), new HashSet<>(trans.get(inState, input)));
-                                // 结束状态 自旋
-                                for (State s : trans.get(inState, input))
-                                    trans.add(s, input.substring(0, input.length() - 1), s);
-                                trans.delete(inState, input);
-                                end = false;
-                            } else if (input.charAt(0) == '[' && input.charAt(input.length() - 1) == ']') {
-                                boolean except = input.charAt(1) == '^';
-                                Set<State> toStates = trans.get(inState, input);
-                                Set<String> each = resolveMBrace(input.substring(except ? 2 : 1, input.length() - 1));
-                                if (except) {
-                                    trans.add(inState, "^" + each.stream().sorted().collect(Collectors.joining()), new HashSet<>(toStates));
+                            if (and || nodeEnd != input.length() - 1) {
+                                // AND 结构
+                                and = true;
+                                if (nodeEnd == input.length() - 1) {
+                                    trans.add(andState, input.substring(i, nodeEnd + 1), toState);
+                                    // 删除原有的转换路径
+                                    trans.delete(inState, input);
                                 } else {
-                                    for (String s : each) {
-                                        trans.add(inState, s, new HashSet<>(toStates));
-                                    }
+                                    trans.add(andState, input.substring(i, nodeEnd + 1), State.build(stateIndex));
+                                    andState = State.build(stateIndex++);
                                 }
-                                trans.delete(inState, input);
-                                end = false;
+                                i = nodeEnd + 1;
+                            } else {
+                                // 不是 or 也 不是 and
+                                // 最外层有一层括号
+
+                                if ((input.charAt(input.length() - 1).equalsKeyword('?'))) {
+                                    if ((input.charAt(input.length() - 1).equalsKeyword('*'))) {
+                                        Expression baseInput = input.substring(0, input.length() - 2);
+                                        for (State rightState : trans.get(inState, input)) {
+                                            trans.add(rightState, baseInput, rightState);
+                                        }
+                                        trans.add(inState, baseInput, new HashSet<>(trans.get(inState, input)));
+                                        trans.add(inState, Expression.emptyInput, new HashSet<>(trans.get(inState, input)));
+                                        trans.delete(inState, input);
+                                    } else if ((input.charAt(input.length() - 1).equalsKeyword('+'))) {
+                                        trans.add(inState, input.substring(0, input.length() - 2), new HashSet<>(trans.get(inState, input)));
+                                        // 结束状态 自旋
+                                        for (State s : trans.get(inState, input))
+                                            trans.add(s, input.substring(0, input.length() - 2), s);
+                                        trans.delete(inState, input);
+                                    } else {
+                                        trans.add(inState, input.substring(0, input.length() - 1), new HashSet<>(trans.get(inState, input)));
+                                        trans.add(inState, Expression.emptyInput, new HashSet<>(trans.get(inState, input)));
+                                        trans.delete(inState, input);
+                                    }
+                                } else if ((input.charAt(input.length() - 1).equalsKeyword('*'))) {
+                                    // 有状态的输出复制到左状态上, 右状态上加自旋, x* 改成x
+                                    Expression baseInput = input.substring(0, input.length() - 1);
+                                    for (State rightState : trans.get(inState, input)) {
+                                        trans.add(rightState, baseInput, rightState);
+                                    }
+                                    trans.add(inState, baseInput, new HashSet<>(trans.get(inState, input)));
+                                    trans.add(inState, Expression.emptyInput, new HashSet<>(trans.get(inState, input)));
+                                    trans.delete(inState, input);
+                                } else if ((input.charAt(input.length() - 1).equalsKeyword('+'))) {
+                                    trans.add(inState, input.substring(0, input.length() - 1), new HashSet<>(trans.get(inState, input)));
+                                    // 结束状态 自旋
+                                    for (State s : trans.get(inState, input))
+                                        trans.add(s, input.substring(0, input.length() - 1), s);
+                                    trans.delete(inState, input);
+                                } else if (input.charAt(0).equalsKeyword('[') && input.charAt(input.length() - 1).equalsKeyword(']')) {
+                                    boolean except = input.charAt(0).equalsKeyword('^');
+                                    Set<State> toStates = trans.get(inState, input);
+                                    Set<Expression> each = resolveMBrace(input.substring(except ? 2 : 1, input.length() - 1));
+                                    if (except) {
+                                        List<Expression.Node> t = each.stream().sorted().map(a -> a.charAt(0)).collect(Collectors.toList());
+                                        t.add(0, new Expression.Node('^', true));
+                                        trans.add(inState, new Expression(t.toArray(new Expression.Node[0])), new HashSet<>(toStates));
+                                    } else {
+                                        for (Expression s : each) {
+                                            trans.add(inState, s, new HashSet<>(toStates));
+                                        }
+                                    }
+                                    trans.delete(inState, input);
+                                }
+                                break;
                             }
-                        } else {
-                            // 删除原来的
-                            trans.delete(inState, inputO);
-                            end = false;
                         }
-                    } else {
-                        if (expendInput(inState, input))
-                            end = false;
+
+                        // 输出中间步骤
+                        trans.print();
                     }
                 }
 //                trans.deleteDelayedNow();
@@ -659,7 +570,7 @@ public class Pattern {
         } while (!end);
     }
 
-    private boolean canSplit(String regex) {
+    private boolean canSplit(Expression regex) {
         // todo: _. 无法匹配
         //  _.
         // _@
@@ -667,66 +578,33 @@ public class Pattern {
         // \^abc
         // _@
 
-        if (regex.charAt(0) == '^') return false;
-        if (regex.length() > 2) return true;
-        if (regex.length() == 1) return false;
-        return !((regex.charAt(0) == '_' || regex.charAt(0) == '^' || regex.charAt(0) == '\\'));
+        if (regex.charAt(0).equalsKeyword('^')) return false;
+        return regex.length() > 1;
     }
 
-    private boolean expendInput(State inState, String input) {
-        if (input.charAt(0) == '.') {
-            trans.add(inState, "_.", trans.get(inState, input));
-            trans.delete(inState, input);
-            return false;
-        }
-        if (input.charAt(0) == '\\' && input.length() > 1)
-            switch (input.charAt(1)) {
-                case 'w':
-                    trans.add(inState, "[a-zA-Z0-9]", trans.get(inState, input));
-                    trans.delete(inState, input);
-                    return true;
-                case 'd':
-                    trans.add(inState, "[0-9]", trans.get(inState, input));
-                    trans.delete(inState, input);
-                    return true;
-                case 's':
-                    trans.add(inState, "[ \r\f\t\n]", trans.get(inState, input));
-                    trans.delete(inState, input);
-                    return true;
-                case 'S':
-                    trans.add(inState, "[ \r\f\t]", trans.get(inState, input));
-                    trans.delete(inState, input);
-                    return true;
-                default:
-                    trans.add(inState, String.valueOf(input.charAt(1)), trans.get(inState, input));
-                    trans.delete(inState, input);
-                    return false;
-            }
-        return false;
-    }
 
-    private Set<String> resolveMBrace(String body) {
-        Set<String> result = new HashSet<String>();
+    private Set<Expression> resolveMBrace(Expression body) {
+        Set<Expression> result = new HashSet<>();
         for (int i = 0; i < body.length(); i++) {
-            if (i < body.length() - 2 && body.charAt(i + 1) == '-') {
+            if (i < body.length() - 2 && body.charAt(i + 1).equalsKeyword('-')) {
                 result.addAll(resolveMBraceIn(body.substring(i, i + 3)));
                 i += 2;
             }
-            result.add(String.valueOf(body.charAt(i)));
+            result.add(new Expression(body.charAt(i)));
         }
         return result;
     }
 
-    private Set<String> resolveMBraceIn(String body) {
-        Set<String> result = new HashSet<String>();
-        if (body.charAt(1) != '-') {
+    private Set<Expression> resolveMBraceIn(Expression body) {
+        Set<Expression> result = new HashSet<>();
+        if (!body.charAt(1).equalsKeyword('-')) {
             System.out.println("a-b 错误");
             return result;
         }
-        if (body.charAt(0) >= body.charAt(2))
-            return new HashSet<>(Arrays.asList(String.valueOf(body.charAt(0)), String.valueOf(body.charAt(0)), String.valueOf(body.charAt(0))));
-        for (int i = body.charAt(0); i <= body.charAt(2); i++) {
-            result.add(String.valueOf((char) i));
+        if (body.charAt(0).content >= body.charAt(2).content)
+            return new HashSet<>(Arrays.asList(new Expression(body.charAt(0)), new Expression(body.charAt(0)), new Expression(body.charAt(0))));
+        for (int i = body.charAt(0).content; i <= body.charAt(2).content; i++) {
+            result.add(new Expression((char) i, false));
         }
         return result;
     }
@@ -744,16 +622,16 @@ public class Pattern {
     private static void testResolveMBrace() {
         Pattern pattern = new Pattern();
 
-        Set<String> strings = pattern.resolveMBrace("a-zA-Z0-9");
+        Set<Expression> strings = pattern.resolveMBrace(new Expression("a-zA-Z0-9"));
         strings.forEach(System.out::println);
         System.out.println("----");
-        strings = pattern.resolveMBrace("z-a-0-");
+        strings = pattern.resolveMBrace(new Expression("z-a-0-"));
         strings.forEach(System.out::println);
         System.out.println("----");
-        strings = pattern.resolveMBrace("-z-a-0-");
+        strings = pattern.resolveMBrace(new Expression("-z-a-0-"));
         strings.forEach(System.out::println);
         System.out.println("----");
-        strings = pattern.resolveMBrace("-a-c-0-");
+        strings = pattern.resolveMBrace(new Expression("-a-c-0-"));
         strings.forEach(System.out::println);
     }
 
