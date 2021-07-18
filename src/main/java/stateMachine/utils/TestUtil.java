@@ -17,7 +17,7 @@ public class TestUtil {
             for (String[] input : inputs) {
                 allCount++;
                 String result = search(pattern, input[0]);
-                Assertions.assertEquals(result,input[1]);
+                Assertions.assertEquals(result, input[1]);
 //                if (result.equals(input[1])) {
 //                    System.out.println("\033[32;2m  success    " + input[0].replace("\n", "\\n").replace("\t", "\\t") + "\033[0m");
 //                    successCount++;
@@ -48,6 +48,18 @@ public class TestUtil {
 //                System.out.println("bad token at line ");
         }
         return sb.toString();
+    }
+
+    public static void assertSame(Pattern pattern, String input) {
+        Assertions.assertEquals(input + "|", search(pattern, input));
+    }
+
+    public static void assertEmpty(Pattern pattern, String input) {
+        Assertions.assertEquals("", search(pattern, input));
+    }
+
+    public static void assertEquals(Pattern pattern, String input, String except) {
+        Assertions.assertEquals(except, search(pattern, input));
     }
 
 }

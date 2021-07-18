@@ -122,10 +122,10 @@ public class Pattern {
         return false;
     }
 
-    private void deleteEmptyInput1(State leftState) {
+    private void deleteEmptyLine1(State leftState) {
         for (State rightState : trans.get(leftState, Expression.emptyInput)) {
-            if (trans.get(rightState).keySet().contains(Expression.emptyInput))
-                deleteEmptyInput1(rightState);
+            if (trans.get(rightState).containsKey(Expression.emptyInput))
+                deleteEmptyLine1(rightState);
             trans.add(leftState, trans.get(rightState));
             if (rightState.isStart()) leftState.setStartTrue();
             if (rightState.isEnd()) leftState.setEndTrue();
@@ -146,7 +146,7 @@ public class Pattern {
                 // 如果有空边输入
                 if (inputs.contains(Expression.emptyInput)) {
                     // todo:双向空边,就合成一个状态.
-                    deleteEmptyInput1(leftState);
+                    deleteEmptyLine1(leftState);
                     end = false;
 
 //                    HashSet<State> resolved = new HashSet<>();
@@ -567,7 +567,7 @@ public class Pattern {
                         }
 
                         // 输出中间步骤
-                        trans.print();
+                        trans.draw();
                     }
                 }
 //                trans.deleteDelayedNow();

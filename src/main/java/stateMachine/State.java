@@ -7,8 +7,8 @@ import java.util.Set;
 public class State {
     private int index;
     private Set<Integer> groupIndex;
-    private boolean isEnd=false;
-    private boolean isStart=false;
+    private boolean isEnd = false;
+    private boolean isStart = false;
 
     public State(int index, State state) {
         this.index = index;
