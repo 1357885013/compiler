@@ -78,24 +78,24 @@ public class Pattern {
         if (debug)
             pattern.print();
         // 先去空边
-        pattern.deleteEmptyInput();
+        pattern.deleteEmptyLine();
         if (debug)
             pattern.print();
         // 顺序处理 . 和 ^[
-        pattern.NFA2DFA1();
+        pattern.progressDotAndExcept();
         if (debug)
             pattern.print();
         // 合并同input边, 不用考虑 . 和 ^[
-        pattern.NFA2DFA2();
+        pattern.uniteMultipleOutputStates();
         if (debug)
             pattern.print();
-        pattern.deleteUselessState();
+        pattern.deleteUnreachableState();
         if (debug)
             pattern.print();
         return pattern;
     }
 
-    private void deleteUselessState() {
+    private void deleteUnreachableState() {
         // 删除没有输入边的非start state
         Map<State, Integer> states = new HashMap<>();
         for (State leftS : trans.keySet()) {
@@ -134,7 +134,7 @@ public class Pattern {
     }
 
     // 若只有一个空边input就两个合成一个, 若除了空边还有其它边, 就复制右边的到左边,其它不变.
-    private void deleteEmptyInput() {
+    private void deleteEmptyLine() {
         boolean end;
         do {
             end = true;
@@ -213,7 +213,7 @@ public class Pattern {
         } while (!end);
     }
 
-    private void NFA2DFA1() {
+    private void progressDotAndExcept() {
         // (所有输入都处理了,再处理自己)
         Map<State, HashSet<State>> allInStates = new HashMap<>();
         Map<State, Boolean> resolved = new HashMap<>();
@@ -317,7 +317,7 @@ public class Pattern {
         return Arrays.toString(states.stream().map(State::getIndex).sorted().toArray(Integer[]::new));
     }
 
-    private void NFA2DFA2() {
+    private void uniteMultipleOutputStates() {
         boolean end;
         Map<String, State> cache = new HashMap<>();
         do {
@@ -409,7 +409,7 @@ public class Pattern {
             if (next.isEmpty || !next.equalsKeyword('|'))
                 return begin;
             else
-                begin+=2;
+                begin += 2;
         }
     }
 
