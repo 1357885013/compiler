@@ -143,4 +143,13 @@ public class State {
         index = -2;
         return this;
     }
+
+    public void setStartTrue() {
+        isStart = true;
+    }
+
+    public void setEndTrue() {
+        isEnd = true;
+    }
+
 }

@@ -126,6 +126,9 @@ public class Pattern {
             if (trans.get(rightState).keySet().contains(Expression.emptyInput))
                 deleteEmptyInput1(rightState);
             trans.add(leftState, trans.get(rightState));
+            if (rightState.isStart()) leftState.setStartTrue();
+            if (rightState.isEnd()) leftState.setEndTrue();
+            rightState.getGroupIndex().forEach(leftState::addGroupIndex);
         }
         trans.delete(leftState, Expression.emptyInput);
     }
