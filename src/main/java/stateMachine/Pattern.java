@@ -15,6 +15,8 @@ public class Pattern {
         trans.draw();
     }
 
+    private boolean drawUniteLine = true;
+
     public static void main(String[] args) throws IOException {
         Pattern pattern;
 
@@ -23,25 +25,31 @@ public class Pattern {
 //        pattern = Pattern.compile("--|\\+=|-\\+|\\*=|/=|&&|\\|\\||!=|==|>=|<=|\\{|\\}|\\[|\\]|\\(|\\)|\\+|\\-|\\*|/|=|&|\\||!|:|;|,|<|>|'|\\\"|\\.", true);
 
 //        pattern = Pattern.compile("ca(.|a)*", true);
+//        pattern = Pattern.compile("a|b|c|dA|bB|cC", true);
 
-        pattern = Pattern.compile("a|b|c|aA|bB|cC", true);
-//        pattern = Pattern.compile("(\\+\\+|--)|(\\+=|-\\+|\\*=)", true);
+//        pattern = Pattern.compile("([a-c][a-c0-2]*)|(d+)", true);
+//        pattern = Pattern.compile("((\\+\\+)|(--))|((\\+=)|(-\\+)|(\\*=))", true);
 //        pattern = Pattern.compile("([ab][AB]*)", true);  // end上有自旋
         // todo: 有错误
+        // todo: 合成状态时死循环
 //        pattern = Pattern.compile("//.*?(\\n|$)", true);
-//        pattern = Pattern.compile("([az][az09]*)|(d+)", true);
+//        pattern = Pattern.compile("([a-c][a-c0-1]*)|(b+)", true);
+//        pattern = Pattern.compile("([a-c]*)|(b+)", true);
+//        pattern = Pattern.compile("(b*)|(b+)", true);
+
+        pattern = Pattern.compile(".*bc", true);
 //        pattern = Pattern.compile("b*?ca", true);
-        // pattern = Pattern.compile("b*?ca", true);
 //        pattern = Pattern.compile("[^abc]", true);
 //        pattern = Pattern.compile(".+bc", true);
 //        pattern = Pattern.compile("([^abc]1)|([^ade]2)|([^fg]3)|([^ghijklmn]4)|[t]5", true);
-        //       pattern = Pattern.compile("([^abc]1)|([^ade]2)|([^fg]3)|([^ghijklmn]4)", true);
+//        pattern = Pattern.compile("([^abc]1)|([^ade]2)|([^fg]3)|([^ghijklmn]4)", true);
 //        pattern = Pattern.compile("ab*?c", true);
 //        pattern = Pattern.compile("ab*(abc)|(ade)", true);
 //        pattern = Pattern.compile("cab*?",true);
 //        pattern = Pattern.compile("(ca.b)|(.d.s)", true);
 //        pattern = Pattern.compile("(a|b|[ccc][as]|d)", true);
 
+        // todo: 看不出对错
 //        pattern = Pattern.compile("a.*cd", true);
 
 //        testResolveMBrace();
@@ -240,17 +248,14 @@ public class Pattern {
             }
         }
 
-        Set<State> all = null;
         Set<Expression> excepts = new HashSet<>();
         do {
             if (trans.get(nowState) != null) {
-                all = null;
                 excepts.clear();
                 for (Expression input : trans.get(nowState).keySet()) {
                     // 是欠处理的边不?
                     // 是 .
                     if (input.equalsKeyword('.')) {
-                        all = trans.get(nowState, input);
                         // 是 ^
                     } else if (input.charAt(0).equalsKeyword('^')) {
                         excepts.add(input.substring(1));
@@ -287,11 +292,14 @@ public class Pattern {
 //                }
                 // 处理 .
                 Set<State> allState = trans.get(nowState, Expression.dot);
-                if (all != null) {
-                    for (Expression input : new HashSet<>(trans.get(nowState).keySet())) {
-                        if (!input.equalsKeyword('.'))
-                            trans.add(nowState, input, allState);
-                    }
+                if (allState != null && !allState.isEmpty()) {
+                    // 把. 指向的状态的所有输出复制到其它边指向的状态上
+                    for (Expression otherInput : trans.get(nowState).keySet())
+                        if (!otherInput.equalsKeyword('.'))
+                            for (State otherState : trans.get(nowState, otherInput))
+                                for (State eachAllState : allState)
+                                    trans.add(otherState, trans.get(eachAllState));
+
                     // 删除后重新添加,让它排在后面
                     trans.add(nowState, Expression.dot, trans.delete(nowState, Expression.dot));
                 }
@@ -334,11 +342,11 @@ public class Pattern {
                     if (oldStates.size() > 1) {
                         // 合成个新的状态
                         // todo: 可能已经有相同的集合转过了
-                        State newState;
+                        State newState = null;
                         String oldStateKey = getKeyOfStates(oldStates);
                         if (cache.containsKey(oldStateKey))
                             newState = cache.get(oldStateKey);
-                        else {
+                        if (newState == null || newState == inState) {
                             newState = State.build(stateIndex++, oldStates);
                             cache.put(oldStateKey, newState);
                         }
@@ -368,6 +376,8 @@ public class Pattern {
 //                    print(trans, inState + "  NFA to DFA  " + input);
                 }
             }
+            if (drawUniteLine)
+                trans.draw("合并状态");
         } while (!end);
     }
 

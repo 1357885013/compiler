@@ -30,7 +30,10 @@ public class TransformTable {
 
     public Set<State> add(State inState, Expression input, Set<State> toStates) {
         Map<Expression, Set<State>> inputs = trans.computeIfAbsent(inState, v -> new LinkedHashMap<>());
-        inputs.computeIfAbsent((input), v -> new HashSet<>()).addAll(toStates);
+        if (toStates != null) {
+            Set<State> states = inputs.computeIfAbsent((input), v -> new HashSet<>());
+            states.addAll(toStates);
+        }
         return inputs.get(input);
     }
 
@@ -93,15 +96,11 @@ public class TransformTable {
 
     public void add(State state, LinkedHashMap<Expression, Set<State>> inputToStates) {
         Map<Expression, Set<State>> inputs = trans.get(state);
-        if (inputs == null)
-            trans.put(state, inputToStates);
-        else {
-            for (Expression input : inputToStates.keySet()) {
-                if (inputs.containsKey(input)) {
-                    inputs.get(input).addAll(inputToStates.get(input));
-                } else {
-                    inputs.put(input, new HashSet<>(inputToStates.get(input)));
-                }
+        for (Expression input : inputToStates.keySet()) {
+            if (inputs.containsKey(input)) {
+                inputs.get(input).addAll(inputToStates.get(input));
+            } else {
+                inputs.put(input, new HashSet<>(inputToStates.get(input)));
             }
         }
     }
