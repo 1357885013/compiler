@@ -37,11 +37,11 @@ public class Pattern {
 //        pattern = Pattern.compile("([a-c]*)|(b+)", true);
 //        pattern = Pattern.compile("(b*)|(b+)", true);
 
-        pattern = Pattern.compile(".*bc", true);
+//        pattern = Pattern.compile(".*bc", true);
 //        pattern = Pattern.compile("b*?ca", true);
 //        pattern = Pattern.compile("[^abc]", true);
 //        pattern = Pattern.compile(".+bc", true);
-//        pattern = Pattern.compile("([^abc]1)|([^ade]2)|([^fg]3)|([^ghijklmn]4)|[t]5", true);
+        pattern = Pattern.compile("([^abc]1)|([^ade]2)|([^fg]3)|([^ghijklmn]4)|[t]5", true);
 //        pattern = Pattern.compile("([^abc]1)|([^ade]2)|([^fg]3)|([^ghijklmn]4)", true);
 //        pattern = Pattern.compile("ab*?c", true);
 //        pattern = Pattern.compile("ab*(abc)|(ade)", true);
@@ -558,11 +558,11 @@ public class Pattern {
                                         trans.add(s, input.substring(0, input.length() - 1), s);
                                     trans.delete(inState, input);
                                 } else if (input.charAt(0).equalsKeyword('[') && input.charAt(input.length() - 1).equalsKeyword(']')) {
-                                    boolean except = input.charAt(0).equalsKeyword('^');
+                                    boolean except = input.charAt(1).equalsKeyword('^');
                                     Set<State> toStates = trans.get(inState, input);
                                     Set<Expression> each = resolveMBrace(input.substring(except ? 2 : 1, input.length() - 1));
                                     if (except) {
-                                        List<Expression.Node> t = each.stream().sorted().map(a -> a.charAt(0)).collect(Collectors.toList());
+                                        List<Expression.Node> t = each.stream().map(a -> a.charAt(0)).sorted(Comparator.comparingInt(a -> a.content)).collect(Collectors.toList());
                                         t.add(0, new Expression.Node('^', true));
                                         trans.add(inState, new Expression(t.toArray(new Expression.Node[0])), new HashSet<>(toStates));
                                     } else {
