@@ -50,6 +50,18 @@ public class State {
         return state;
     }
 
+    /**
+     * copy the groups info and start end info
+     * @param from
+     */
+    public void copy(State from) {
+        this.getGroupIndex().addAll(from.getGroupIndex());
+        if (from.isStart)
+            this.isStart = true;
+        if (from.isEnd)
+            this.isEnd = true;
+
+    }
 
     // 多个状态合并
     public static State build(int index, Set<State> states) {

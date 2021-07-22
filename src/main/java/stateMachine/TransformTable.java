@@ -10,6 +10,7 @@ import java.util.*;
 
 public class TransformTable {
     public Map<State, LinkedHashMap<Expression, Set<State>>> trans = new HashMap<>();
+    private Map<State, Integer> inputsCount;
     private State startState;
 
     public TransformTable(Expression regex) {
@@ -26,6 +27,18 @@ public class TransformTable {
     public Set<State> set(State inState, Expression input, Set<State> toStates) {
         Map<Expression, Set<State>> inputs = trans.computeIfAbsent(inState, v -> new LinkedHashMap<>());
         return inputs.put((input), toStates);
+    }
+
+    public Map<State, Integer> countInputsCount() {
+        inputsCount = new HashMap<>();
+        for (State inState : trans.keySet()) {
+            for (Expression input : trans.get(inState).keySet()) {
+                for (State state : trans.get(inState).get(input)) {
+                    inputsCount.put(state, inputsCount.getOrDefault(state, 0) + 1);
+                }
+            }
+        }
+        return inputsCount;
     }
 
     public Set<State> add(State inState, Expression input, Set<State> toStates) {
@@ -95,14 +108,15 @@ public class TransformTable {
     }
 
     public void add(State state, LinkedHashMap<Expression, Set<State>> inputToStates) {
-        Map<Expression, Set<State>> inputs = trans.get(state);
+        LinkedHashMap<Expression, Set<State>> inputs = trans.getOrDefault(state,new LinkedHashMap<>());
         for (Expression input : inputToStates.keySet()) {
-            if (inputs.containsKey(input)) {
+            if (inputs.containsKey(input) && inputToStates.get(input) != null) {
                 inputs.get(input).addAll(inputToStates.get(input));
             } else {
                 inputs.put(input, new HashSet<>(inputToStates.get(input)));
             }
         }
+        trans.put(state,inputs);
     }
 
     private static int fileIndex = 1;
@@ -120,7 +134,7 @@ public class TransformTable {
     public void draw(String name) {
         directory = new File("ere/test");
 
-        String fileName = "ere/test/" + name + fileIndex++ + ".dot";
+        String fileName = "ere/test/" + fileIndex++ +"_" + name + ".dot";
         File f = new File(fileName);
         try {
             if (!f.createNewFile()) {

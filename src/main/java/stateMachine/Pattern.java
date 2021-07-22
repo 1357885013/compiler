@@ -1,5 +1,7 @@
 package stateMachine;
 
+import stateMachine.utils.Util;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -33,15 +35,16 @@ public class Pattern {
         // todo: 有错误
         // todo: 合成状态时死循环
 //        pattern = Pattern.compile("//.*?(\\n|$)", true);
-//        pattern = Pattern.compile("([a-c][a-c0-1]*)|(b+)", true);
-//        pattern = Pattern.compile("([a-c]*)|(b+)", true);
+        pattern = Pattern.compile("([a-c][a-c0-1]*1)|(b+2)", true);
+//        pattern = Pattern.compile("([a-b]*)|(b+)", true);
 //        pattern = Pattern.compile("(b*)|(b+)", true);
 
 //        pattern = Pattern.compile(".*bc", true);
 //        pattern = Pattern.compile("b*?ca", true);
 //        pattern = Pattern.compile("[^abc]", true);
 //        pattern = Pattern.compile(".+bc", true);
-        pattern = Pattern.compile("([^abc]1)|([^ade]2)|([^fg]3)|([^ghijklmn]4)|[t]5", true);
+//        pattern = Pattern.compile("(a*|b*)*", true);
+//        pattern = Pattern.compile("([^abc]1)|([^ade]2)|([^fg]3)|([^ghijklmn]4)|[t]5", true);
 //        pattern = Pattern.compile("([^abc]1)|([^ade]2)|([^fg]3)|([^ghijklmn]4)", true);
 //        pattern = Pattern.compile("ab*?c", true);
 //        pattern = Pattern.compile("ab*(abc)|(ade)", true);
@@ -340,44 +343,110 @@ public class Pattern {
                     Set<State> oldStates = inputToStates.get(input);
                     // 如果一个状态一个输入有多个输出
                     if (oldStates.size() > 1) {
-                        // 合成个新的状态
-                        // todo: 可能已经有相同的集合转过了
-                        State newState = null;
-                        String oldStateKey = getKeyOfStates(oldStates);
-                        if (cache.containsKey(oldStateKey))
-                            newState = cache.get(oldStateKey);
-                        if (newState == null || newState == inState) {
-                            newState = State.build(stateIndex++, oldStates);
-                            cache.put(oldStateKey, newState);
+                        // 特殊状态, 不合成新状态, 而是把其它状态复制到其中一个状态上.
+                        // 暂时是 多个状态有相同input的自旋或内部指向时就复制到输出最少且只有这一个输入的状态上.
+                        boolean needCreateNew = true;
+                        Set<State> t = new HashSet<>();
+                        Map<Expression, Integer> counts = new HashMap<>();
+                        State simpleState = null;
+                        int minOutputCount = Integer.MAX_VALUE;
+                        // 统计所有状态的输入边数量
+                        Map<State, Integer> inputsCount = trans.countInputsCount();
+                        // 上面的值的偏移量, 有的状态的值会少或者多就在这里记录.
+                        Map<State, Integer> inputsCountDiff = new HashMap<>();
+
+                        for (State state : oldStates) {
+                            if (needCreateNew)
+                                if (trans.get(state) != null)
+                                    for (Expression expression : trans.get(state).keySet()) {
+                                        // 自旋
+                                        boolean hasSpin = false;
+                                        if (trans.get(state, expression).contains(state)) {
+                                            counts.put(expression, counts.getOrDefault(expression, 0) + 1);
+                                            inputsCountDiff.put(state, inputsCountDiff.getOrDefault(state, 0) + 1);
+                                            hasSpin = true;
+                                        }
+                                        // 被自己人指向,  或者说有内部路径
+                                        Set<State> intersection;
+                                        if ((intersection = Util.isIntersect(trans.get(state, expression), oldStates)).size() > (hasSpin ? 1 : 0)) {
+                                            counts.put(expression, counts.getOrDefault(expression, 0) + 1);
+                                            for (State eachState : intersection) {
+                                                inputsCountDiff.put(eachState, inputsCountDiff.getOrDefault(eachState, 0) + 1);
+                                            }
+                                        }
+                                        if (counts.getOrDefault(expression, 0) >= 2) {
+                                            // 有相同自旋
+                                            needCreateNew = false;
+                                        }
+                                    }
+//                            if (trans.get(state) != null)
+//                                if (inputsCount.getOrDefault(state, 0) - inputsCountDiff.getOrDefault(state, 0) == 1 && trans.get(state).size() < minOutputCount) {
+//                                    minOutputCount = trans.get(state).size();
+//                                    simpleState = state;
+//                                }
                         }
-                        // 将这多个状态替换成新状态
-                        HashSet<State> newStates = new HashSet<>();
-                        newStates.add(newState);
-                        trans.get(inState).replace(input, newStates);
+                        if (!needCreateNew) {
+                            for (State state : oldStates) {
+                                // 只有这一个输入才能当受体. 否则从其他边进入这个状态就会出错.
+                                if (inputsCount.getOrDefault(state, 0) - inputsCountDiff.getOrDefault(state, 0) == 1) {
+                                    simpleState = state;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!needCreateNew && simpleState != null) {
+                            // input 上 的其它状态的输出复制到simpleState上.
+                            // todo: 状态分解, 有多个输入的状态分成多个状态,让每个状态只有一个输入.
+                            for (State state : new HashSet<>(oldStates)) {
+                                if (state != simpleState) {
+                                    if (trans.get(state) != null) {
+                                        trans.add(simpleState, trans.get(state));
+                                    }
+                                    simpleState.copy(state);
+                                    trans.delete(inState, input, state);
+                                }
+                            }
+                        } else {
+                            // 合成个新的状态
+                            State newState = null;
+                            String oldStateKey = getKeyOfStates(oldStates);
+                            // 检查是否有相同的集合转过了
+                            if (cache.containsKey(oldStateKey))
+                                newState = cache.get(oldStateKey);
+                            // 从缓存里拿出来的状态是自身的话就再新建一个状态.
+                            if (newState == null || newState == inState) {
+                                newState = State.build(stateIndex++, oldStates);
+                                cache.put(oldStateKey, newState);
+                            }
+                            // 将这多个状态替换成新状态
+                            HashSet<State> newStates = new HashSet<>();
+                            newStates.add(newState);
+                            trans.get(inState).replace(input, newStates);
 //                        trans.delete(inState, input);
 //                        trans.add(inState, input, newState);
 
-                        // 复制旧状态上的输出到新状态上
-                        for (State oldState : new HashSet<>(oldStates)) {
-                            if (trans.get(oldState) != null)
-                                // 转移输出
-                                for (Expression in : trans.get(oldState).keySet()) {
-                                    trans.add(newState, in, trans.get(oldState, in));
-                                }
+                            // 复制旧状态上的输出到新状态上
+                            for (State oldState : new HashSet<>(oldStates)) {
+                                if (trans.get(oldState) != null)
+                                    // 转移输出
+                                    for (Expression in : trans.get(oldState).keySet()) {
+                                        trans.add(newState, in, trans.get(oldState, in));
+                                    }
+                            }
                         }
-                        //  不用转移输入,  会死循环, 不删除原状态, 该去原来还去原来
                         // 删除
 //                        for (State state : oldStates) {
 //                            trans.delete(state);
 //                        }
                         end = false;
+                        if (drawUniteLine)
+                            trans.draw("41_合并状态" + inState.getIndex() + "-" + input.toString() + "--");
+
                         break out;
+
                     }
-//                    print(trans, inState + "  NFA to DFA  " + input);
                 }
             }
-            if (drawUniteLine)
-                trans.draw("合并状态");
         } while (!end);
     }
 

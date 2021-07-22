@@ -1,7 +1,11 @@
 package stateMachine.utils;
 
+import stateMachine.State;
+
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class Util {
     private static void mapToArray(String t) {
@@ -23,5 +27,16 @@ public class Util {
 
     public static void main(String[] args) {
         mapToArray(" 0:2,22:2,23:2,21:45,26:46");
+    }
+
+    public static Set<State> isIntersect(Set<State> states, Set<State> oldStates) {
+        Set<State> t = new HashSet<>(states);
+        t.retainAll(oldStates);
+        return t;
+//        for (State state : states) {
+//            if (oldStates.contains(state))
+//                return true;
+//        }
+//        return false;
     }
 }
