@@ -35,7 +35,7 @@ public class Pattern {
         // todo: 有错误
         // todo: 合成状态时死循环
 //        pattern = Pattern.compile("//.*?(\\n|$)", true);
-        pattern = Pattern.compile("([a-c][a-c0-1]*1)|(b+2)", true);
+        pattern = Pattern.compile("([a-b][a-b0-1]*1)|(b+2)", true);
 //        pattern = Pattern.compile("([a-b]*)|(b+)", true);
 //        pattern = Pattern.compile("(b*)|(b+)", true);
 
@@ -336,13 +336,14 @@ public class Pattern {
             end = true;
             Set<State> transKeys = new HashSet<>(trans.keySet());
             out:
-            for (State inState : transKeys) {
-                Map<Expression, Set<State>> inputToStates = trans.get(inState);
+            //nowState  nowInput  nowOutStates
+            for (State nowState : transKeys) {
+                Map<Expression, Set<State>> inputToStates = trans.get(nowState);
                 Set<Expression> inputToStatesKeys = new HashSet<>(inputToStates.keySet());
-                for (Expression input : inputToStatesKeys) {
-                    Set<State> oldStates = inputToStates.get(input);
+                for (Expression nowInput : inputToStatesKeys) {
+                    Set<State> nowOutStates = inputToStates.get(nowInput);
                     // 如果一个状态一个输入有多个输出
-                    if (oldStates.size() > 1) {
+                    if (nowOutStates.size() > 1) {
                         // 特殊状态, 不合成新状态, 而是把其它状态复制到其中一个状态上.
                         // 暂时是 多个状态有相同input的自旋或内部指向时就复制到输出最少且只有这一个输入的状态上.
                         boolean needCreateNew = true;
@@ -355,7 +356,7 @@ public class Pattern {
                         // 上面的值的偏移量, 有的状态的值会少或者多就在这里记录.
                         Map<State, Integer> inputsCountDiff = new HashMap<>();
 
-                        for (State state : oldStates) {
+                        for (State state : nowOutStates) {
                             if (needCreateNew)
                                 if (trans.get(state) != null)
                                     for (Expression expression : trans.get(state).keySet()) {
@@ -368,7 +369,7 @@ public class Pattern {
                                         }
                                         // 被自己人指向,  或者说有内部路径
                                         Set<State> intersection;
-                                        if ((intersection = Util.isIntersect(trans.get(state, expression), oldStates)).size() > (hasSpin ? 1 : 0)) {
+                                        if ((intersection = Util.isIntersect(trans.get(state, expression), nowOutStates)).size() > (hasSpin ? 1 : 0)) {
                                             counts.put(expression, counts.getOrDefault(expression, 0) + 1);
                                             for (State eachState : intersection) {
                                                 inputsCountDiff.put(eachState, inputsCountDiff.getOrDefault(eachState, 0) + 1);
@@ -386,7 +387,7 @@ public class Pattern {
 //                                }
                         }
                         if (!needCreateNew) {
-                            for (State state : oldStates) {
+                            for (State state : nowOutStates) {
                                 // 只有这一个输入才能当受体. 否则从其他边进入这个状态就会出错.
                                 if (inputsCount.getOrDefault(state, 0) - inputsCountDiff.getOrDefault(state, 0) == 1) {
                                     simpleState = state;
@@ -395,38 +396,38 @@ public class Pattern {
                             }
                         }
                         if (!needCreateNew && simpleState != null) {
-                            // input 上 的其它状态的输出复制到simpleState上.
+                            // nowInput 上 的其它状态的输出复制到simpleState上.
                             // todo: 状态分解, 有多个输入的状态分成多个状态,让每个状态只有一个输入.
-                            for (State state : new HashSet<>(oldStates)) {
+                            for (State state : new HashSet<>(nowOutStates)) {
                                 if (state != simpleState) {
                                     if (trans.get(state) != null) {
                                         trans.add(simpleState, trans.get(state));
                                     }
                                     simpleState.copy(state);
-                                    trans.delete(inState, input, state);
+                                    trans.delete(nowState, nowInput, state);
                                 }
                             }
                         } else {
                             // 合成个新的状态
                             State newState = null;
-                            String oldStateKey = getKeyOfStates(oldStates);
+                            String oldStateKey = getKeyOfStates(nowOutStates);
                             // 检查是否有相同的集合转过了
                             if (cache.containsKey(oldStateKey))
                                 newState = cache.get(oldStateKey);
                             // 从缓存里拿出来的状态是自身的话就再新建一个状态.
-                            if (newState == null || newState == inState) {
-                                newState = State.build(stateIndex++, oldStates);
+                            if (newState == null || newState == nowState) {
+                                newState = State.build(stateIndex++, nowOutStates);
                                 cache.put(oldStateKey, newState);
                             }
                             // 将这多个状态替换成新状态
                             HashSet<State> newStates = new HashSet<>();
                             newStates.add(newState);
-                            trans.get(inState).replace(input, newStates);
-//                        trans.delete(inState, input);
-//                        trans.add(inState, input, newState);
+                            trans.get(nowState).replace(nowInput, newStates);
+//                        trans.delete(nowState, nowInput);
+//                        trans.add(nowState, nowInput, newState);
 
                             // 复制旧状态上的输出到新状态上
-                            for (State oldState : new HashSet<>(oldStates)) {
+                            for (State oldState : new HashSet<>(nowOutStates)) {
                                 if (trans.get(oldState) != null)
                                     // 转移输出
                                     for (Expression in : trans.get(oldState).keySet()) {
@@ -435,12 +436,12 @@ public class Pattern {
                             }
                         }
                         // 删除
-//                        for (State state : oldStates) {
+//                        for (State state : nowOutStates) {
 //                            trans.delete(state);
 //                        }
                         end = false;
                         if (drawUniteLine)
-                            trans.draw("41_合并状态" + inState.getIndex() + "-" + input.toString() + "--");
+                            trans.draw("41_合并状态" + nowState.getIndex() + "-" + nowInput.toString() + "--");
 
                         break out;
 
