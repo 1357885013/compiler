@@ -35,7 +35,8 @@ public class Pattern {
         // todo: 有错误
         // todo: 合成状态时死循环
 //        pattern = Pattern.compile("//.*?(\\n|$)", true);
-        pattern = Pattern.compile("([a-b][a-b0-1]*1)|(b+2)", true);
+        pattern = Pattern.compile("([a-b][a-b0-1]*1)|(b+2)", true); //((a|b)(a|b|0|1)*1)|(b+2)
+//        pattern = Pattern.compile("([a-b][a-b0-1]*1)", true);
 //        pattern = Pattern.compile("([a-b]*)|(b+)", true);
 //        pattern = Pattern.compile("(b*)|(b+)", true);
 
@@ -97,6 +98,10 @@ public class Pattern {
         pattern.progressDotAndExcept();
         if (debug)
             pattern.trans.draw("4_ProgressDotAndExcept");
+        // 多个自旋 -> 大回环
+        pattern.changeSpin2Circle();
+        if (debug)
+            pattern.trans.draw("4_ChangeSpin2Circle");
         // 合并同input边, 不用考虑 . 和 ^[
         pattern.uniteMultipleOutputStates();
         if (debug)
@@ -105,6 +110,64 @@ public class Pattern {
         if (debug)
             pattern.trans.draw("6_DeleteUnreachableState");
         return pattern;
+    }
+
+    private void changeSpin2Circle() {
+        Map<State, Set<Side>> spins = new HashMap<>();
+        for (State leftS : trans.keySet()) {
+            for (Expression input : trans.get(leftS).keySet()) {
+                for (State rightS : trans.get(leftS).get(input)) {
+                    if (leftS != rightS)
+                        // 如果包含和输入相同的自旋
+                        if (trans.get(rightS, input) != null && trans.get(rightS, input).contains(rightS)) {
+                            // 记录在案
+                            spins.putIfAbsent(rightS, new HashSet<>(List.of(new Side(leftS, input))));
+                            spins.get(rightS).add(new Side(leftS, input));
+                        }
+                }
+            }
+        }
+        // 这个状态就多个自旋
+        // spins : rightState -> { leftState, input }
+        for (State rightState : spins.keySet()) {
+            if (spins.get(rightState).size() > 1) {
+                // 处理
+                // 创建新的, 除了自旋其它输出全部复制, 状态也复制.
+                Map<Expression, State> newStates = new HashMap<>();
+                // 先全部复制.
+                State blueprint = new State(stateIndex++, rightState);
+                trans.add(blueprint, trans.get(rightState));
+
+                // 删除 本来的状态
+                for (Side side : spins.get(rightState)) {
+                    State leftState = side.getState();
+                    Expression input = side.getInput();
+                    trans.delete(blueprint, input, rightState);
+                }
+                for (Side side : spins.get(rightState)) {
+                    State leftState = side.getState();
+                    Expression input = side.getInput();
+                    // 复制每个回旋的状态
+                    State nn = new State(stateIndex++, blueprint);
+                    trans.add(nn, trans.get(blueprint));
+                    // 创建 自旋
+                    trans.add(nn, input, nn);
+                    newStates.put(input, nn);
+                    // 老的输入指向新的
+                    trans.delete(leftState, input, rightState);
+                    trans.add(leftState, input, nn);
+                    // 老的输出指向新的
+                    trans.delete(rightState, input, rightState);
+                    trans.add(rightState, input, nn);
+                }
+                // 新的之间互指
+                for (Expression newInput : newStates.keySet())
+                    for (Expression newInput1 : newStates.keySet())
+                        if (newInput != newInput1)
+                            trans.add(newStates.get(newInput), newInput1, newStates.get(newInput1));
+
+            }
+        }
     }
 
     private void deleteUnreachableState() {
@@ -344,7 +407,7 @@ public class Pattern {
                     Set<State> nowOutStates = inputToStates.get(nowInput);
                     // 如果一个状态一个输入有多个输出
                     if (nowOutStates.size() > 1) {
-                        // 特殊状态, 不合成新状态, 而是把其它状态复制到其中一个状态上.
+                        // 看是不是有状态包含另外的状态, 是的话就合成到别的状态上.
                         // 暂时是 多个状态有相同input的自旋或内部指向时就复制到输出最少且只有这一个输入的状态上.
                         boolean needCreateNew = true;
                         Set<State> t = new HashSet<>();
@@ -401,7 +464,7 @@ public class Pattern {
                             for (State state : new HashSet<>(nowOutStates)) {
                                 if (state != simpleState) {
                                     if (trans.get(state) != null) {
-                                        trans.add(simpleState, trans.get(state));
+                                        trans.add(simpleState, trans.get(state),state);
                                     }
                                     simpleState.copy(state);
                                     trans.delete(nowState, nowInput, state);
@@ -431,17 +494,17 @@ public class Pattern {
                                 if (trans.get(oldState) != null)
                                     // 转移输出
                                     for (Expression in : trans.get(oldState).keySet()) {
-                                        trans.add(newState, in, trans.get(oldState, in));
+                                        trans.add(newState, in, trans.get(oldState, in),oldState);
                                     }
                             }
                         }
-                        // 删除
+                        // 删除 , when 联通双环结构,  then 删除其中一个
 //                        for (State state : nowOutStates) {
 //                            trans.delete(state);
 //                        }
                         end = false;
                         if (drawUniteLine)
-                            trans.draw("41_合并状态" + nowState.getIndex() + "-" + nowInput.toString() + "--");
+                            trans.draw("41_合并状态" + nowState.getIndex() + "-" + nowInput.toString() + "%" + (simpleState == null ? "1" : "2") + "--");
 
                         break out;
 

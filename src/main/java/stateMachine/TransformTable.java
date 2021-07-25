@@ -41,12 +41,30 @@ public class TransformTable {
         return inputsCount;
     }
 
-    public Set<State> add(State inState, Expression input, Set<State> toStates) {
-        Map<Expression, Set<State>> inputs = trans.computeIfAbsent(inState, v -> new LinkedHashMap<>());
-        if (toStates != null) {
+    public Set<State> add(State destState, Expression input, Set<State> object) {
+        return add(destState, input, object, null);
+    }
+
+    /**
+     * 添加 , 同时会把旧状态自旋转换成新状态自旋.
+     *
+     * @param destState 受
+     * @param input     转移项
+     * @param object    目标
+     * @param srcState
+     * @return
+     */
+    public Set<State> add(State destState, Expression input, Set<State> object, State srcState) {
+        Map<Expression, Set<State>> inputs = trans.computeIfAbsent(destState, v -> new LinkedHashMap<>());
+        if (object != null) {
             Set<State> states = inputs.computeIfAbsent((input), v -> new HashSet<>());
-            states.addAll(toStates);
+            states.addAll(object);
+            if (srcState != null && object.contains(srcState)) {
+                states.remove(srcState);
+                states.add(destState);
+            }
         }
+        // 旧状态自旋转成新状态自旋.
         return inputs.get(input);
     }
 
@@ -107,16 +125,33 @@ public class TransformTable {
         this.startState = startState;
     }
 
-    public void add(State state, LinkedHashMap<Expression, Set<State>> inputToStates) {
-        LinkedHashMap<Expression, Set<State>> inputs = trans.getOrDefault(state,new LinkedHashMap<>());
-        for (Expression input : inputToStates.keySet()) {
-            if (inputs.containsKey(input) && inputToStates.get(input) != null) {
-                inputs.get(input).addAll(inputToStates.get(input));
+    public void add(State state, LinkedHashMap<Expression, Set<State>> outputs) {
+        add(state, outputs, null);
+    }
+
+    /**
+     * 添加 , 同时会把旧状态自旋转换成新状态自旋.
+     *
+     * @param state   目标状态
+     * @param outputs 要转移的
+     * @param oState  原状态, 主要用来判断自旋.
+     */
+    public void add(State state, LinkedHashMap<Expression, Set<State>> outputs, State oState) {
+        LinkedHashMap<Expression, Set<State>> inputs = trans.getOrDefault(state, new LinkedHashMap<>());
+        for (Expression input : outputs.keySet()) {
+            if (inputs.containsKey(input) && outputs.get(input) != null) {
+                inputs.get(input).addAll(outputs.get(input));
+
             } else {
-                inputs.put(input, new HashSet<>(inputToStates.get(input)));
+                inputs.put(input, new HashSet<>(outputs.get(input)));
+            }
+            // 旧状态自旋转成新状态自旋.
+            if (oState != null && outputs.get(input).contains(oState)) {
+                inputs.get(input).remove(oState);
+                inputs.get(input).add(state);
             }
         }
-        trans.put(state,inputs);
+        trans.put(state, inputs);
     }
 
     private static int fileIndex = 1;
@@ -134,7 +169,7 @@ public class TransformTable {
     public void draw(String name) {
         directory = new File("ere/test");
 
-        String fileName = "ere/test/" + fileIndex++ +"_" + name + ".dot";
+        String fileName = "ere/test/" + fileIndex++ + "_" + name + ".dot";
         File f = new File(fileName);
         try {
             if (!f.createNewFile()) {
