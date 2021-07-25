@@ -12,39 +12,33 @@ class TestPlus {
 
     @Test
     public void test1() {
-        Pattern pattern;
-        pattern = Pattern.compile("a+");
-        testEach(pattern,
-                new String[]{"aaa", "aaa|"},
-                new String[]{"aa", "aa|"},
-                new String[]{"a", "a|"},
-                new String[]{"bc", ""},
-                new String[]{"", ""}
-        );
+        Pattern pattern = Pattern.compile("a+", true);
+        TestUtil.assertSame(pattern, "aaa");
+        TestUtil.assertSame(pattern, "aa");
+        TestUtil.assertSame(pattern, "a");
+        TestUtil.assertEmpty(pattern, "bc");
+        TestUtil.assertEmpty(pattern, "");
     }
 
     @Test
-    public void test2() {
-        Pattern pattern;
-        pattern = Pattern.compile(".+");
-        testEach(pattern,
-                new String[]{"abc", "abc|"},
-                new String[]{"abcabc", "abcabc|"},
-                new String[]{"", ""},
-                new String[]{"a\nb", "a\nb|"}
-        );
+    public void testDot() {
+        Pattern pattern = Pattern.compile(".+", true);
+        TestUtil.assertSame(pattern, "abc");
+        TestUtil.assertSame(pattern, "abcabc");
+        TestUtil.assertSame(pattern, "a\nb");
+        TestUtil.assertSame(pattern, "bfdsajoc");
+        TestUtil.assertEmpty(pattern, "");
     }
 
     @Test
-    public void test3() {
-        Pattern pattern;
-        pattern = Pattern.compile(".+bc");
-        Assertions.assertEquals("abc|", TestUtil.search(pattern, "abc"));
-        Assertions.assertEquals("abbc|", TestUtil.search(pattern, "abbc"));
-        Assertions.assertEquals("", TestUtil.search(pattern, "bc"));
-        Assertions.assertEquals("", TestUtil.search(pattern, "asfds"));
-        Assertions.assertEquals("a\nbc|", TestUtil.search(pattern, "a\nbc"));
-        Assertions.assertEquals("abcabc|", TestUtil.search(pattern, "abcabc"));
-        Assertions.assertEquals("abcbc|", TestUtil.search(pattern, "abcbc"));
+    public void testAll() {
+        Pattern pattern = Pattern.compile(".+bc", true);
+        TestUtil.assertSame(pattern, "abc");
+        TestUtil.assertSame(pattern, "abbc");
+        TestUtil.assertEmpty(pattern, "bc");
+        TestUtil.assertEmpty(pattern, "asfds");
+        TestUtil.assertSame(pattern, "a\nbc");
+        TestUtil.assertSame(pattern, "abcabc");
+        TestUtil.assertSame(pattern, "abcbc");
     }
 }

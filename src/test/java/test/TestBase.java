@@ -31,17 +31,4 @@ class TestBase {
                 new String[]{"a", "a|"}
         );
     }
-    @Test
-    public void andAndOr() {
-        Pattern pattern;
-        pattern = Pattern.compile(".bc|def");
-        testEach(pattern,
-                new String[]{"dbcef", "dbcef|"},
-                new String[]{"abcef", "abcef|"},
-                new String[]{"dbdef", "dbdef|"},
-                new String[]{"abdef", "abdef|"},
-                new String[]{"", ""},
-                new String[]{"a\nb", ""}
-        );
-    }
 }

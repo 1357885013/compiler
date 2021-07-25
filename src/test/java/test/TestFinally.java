@@ -1,6 +1,7 @@
 package test;
 
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import stateMachine.Pattern;
 
@@ -11,6 +12,7 @@ class TestFinally {
     @Test
     public void test1() {
         Pattern pattern;
+        Assertions.assertEquals(1,2);
         pattern = Pattern.compile("((//.*?(\\n|$))|(/\\*.*?\\*/))|([a-zA-Z_][a-zA-Z0-9_]*)|(\\d+)|(\"((\\\\\")|.)*?\")|(\\+\\+|--|\\+=|-\\+|\\*=|/=|&&|\\|\\||!=|==|>=|<=)|(\\{|\\}|\\[|\\]|\\(|\\)|\\+|\\-|\\*|/|=|&|\\||!|:|;|,|<|>|'|\\\"|\\.)|(\\b)");
         testEach(pattern,
                 new String[]{"public int a=10", "public| |int| |a|=|10|"},
