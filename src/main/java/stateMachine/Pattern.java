@@ -27,7 +27,7 @@ public class Pattern {
 //        pattern = Pattern.compile("--|\\+=|-\\+|\\*=|/=|&&|\\|\\||!=|==|>=|<=|\\{|\\}|\\[|\\]|\\(|\\)|\\+|\\-|\\*|/|=|&|\\||!|:|;|,|<|>|'|\\\"|\\.", true);
 
 //        pattern = Pattern.compile("ca(.|a)*", true);
-//        pattern = Pattern.compile("a|b|c|dA|bB|cC", true);
+        pattern = Pattern.compile("a|b|c|dA|bB|cC", true);
 
 //        pattern = Pattern.compile("([a-c][a-c0-2]*)|(d+)", true);
 //        pattern = Pattern.compile("((\\+\\+)|(--))|((\\+=)|(-\\+)|(\\*=))", true);
@@ -35,7 +35,7 @@ public class Pattern {
         // todo: 有错误
         // todo: 合成状态时死循环
 //        pattern = Pattern.compile("//.*?(\\n|$)", true);
-        pattern = Pattern.compile("([a-b][a-b0-1]*1)|(b+2)", true); //((a|b)(a|b|0|1)*1)|(b+2)
+//        pattern = Pattern.compile("([a-b][a-b0-1]*1)|(b+2)", true); //((a|b)(a|b|0|1)*1)|(b+2)
 //        pattern = Pattern.compile("([a-b][a-b0-1]*1)", true);
 //        pattern = Pattern.compile("([a-b]*)|(b+)", true);
 //        pattern = Pattern.compile("(b*)|(b+)", true);
@@ -601,12 +601,14 @@ public class Pattern {
 
                             // 整个都是括号
                             if (i == 0 && nodeEnd == input.length() - 1 && input.charAt(nodeEnd).equalsKeyword(')')) {
+                                // 添加一个去掉括号的边
                                 trans.add(inState, input.substring(1, input.length() - 1), new HashSet<>(trans.get(inState, input)));
                                 inState.addGroupIndex(stateGroupIndex);
                                 for (State state : trans.get(inState, input)) {
                                     state.addGroupIndex(stateGroupIndex);
                                 }
                                 stateGroupIndex++;
+                                // 删除原来的边
                                 trans.delete(inState, input);
                             }
 
@@ -638,9 +640,11 @@ public class Pattern {
                                     break;
                                 }
                             }
+                            // 不是最后一位就是and结构
                             if (and || nodeEnd != input.length() - 1) {
                                 // AND 结构
                                 and = true;
+                                // 如果是最后一位
                                 if (nodeEnd == input.length() - 1) {
                                     trans.add(andState, input.substring(i, nodeEnd + 1), toState);
                                     // 删除原有的转换路径
@@ -653,7 +657,6 @@ public class Pattern {
                                 i = nodeEnd + 1;
                             } else {
                                 // 不是 or 也 不是 and
-                                // 最外层有一层括号
 
                                 if ((input.charAt(input.length() - 1).equalsKeyword('?'))) {
                                     if ((input.charAt(input.length() - 1).equalsKeyword('*'))) {
