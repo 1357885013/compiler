@@ -27,7 +27,7 @@ public class Pattern {
 //        pattern = Pattern.compile("--|\\+=|-\\+|\\*=|/=|&&|\\|\\||!=|==|>=|<=|\\{|\\}|\\[|\\]|\\(|\\)|\\+|\\-|\\*|/|=|&|\\||!|:|;|,|<|>|'|\\\"|\\.", true);
 
 //        pattern = Pattern.compile("ca(.|a)*", true);
-//        pattern = Pattern.compile("a|b|c|dA|bB|cC", true);
+        pattern = Pattern.compile("a|b|c|dA|bB|cC", true);
 
 //        pattern = Pattern.compile("([a-c][a-c0-2]*)|(d+)", true);
 //        pattern = Pattern.compile("((\\+\\+)|(--))|((\\+=)|(-\\+)|(\\*=))", true);
@@ -35,7 +35,7 @@ public class Pattern {
         // todo: 有错误
         // todo: 合成状态时死循环
 //        pattern = Pattern.compile("//.*?(\\n|$)", true);
-        pattern = Pattern.compile("([a-b][a-b0-1]*1)|(b+2)", true); //((a|b)(a|b|0|1)*1)|(b+2)
+//        pattern = Pattern.compile("([a-b][a-b0-1]*1)|(b+2)", true); //((a|b)(a|b|0|1)*1)|(b+2)
 //        pattern = Pattern.compile("([a-b][a-b0-1]*1)", true);
 //        pattern = Pattern.compile("([a-b]*)|(b+)", true);
 //        pattern = Pattern.compile("(b*)|(b+)", true);
@@ -464,7 +464,7 @@ public class Pattern {
                             for (State state : new HashSet<>(nowOutStates)) {
                                 if (state != simpleState) {
                                     if (trans.get(state) != null) {
-                                        trans.add(simpleState, trans.get(state),state);
+                                        trans.add(simpleState, trans.get(state), state);
                                     }
                                     simpleState.copy(state);
                                     trans.delete(nowState, nowInput, state);
@@ -494,7 +494,7 @@ public class Pattern {
                                 if (trans.get(oldState) != null)
                                     // 转移输出
                                     for (Expression in : trans.get(oldState).keySet()) {
-                                        trans.add(newState, in, trans.get(oldState, in),oldState);
+                                        trans.add(newState, in, trans.get(oldState, in), oldState);
                                     }
                             }
                         }
@@ -546,17 +546,6 @@ public class Pattern {
         return begin;
     }
 
-    private int findOrEnd(Expression e, int begin) {
-        while (true) {
-            begin = findNodeEnd(e, begin);
-            Expression.Node next = e.charAt(begin + 1);
-            if (next.isEmpty || !next.equalsKeyword('|'))
-                return begin;
-            else
-                begin += 2;
-        }
-    }
-
     private int findNodeEnd(Expression e, int begin) {
         if (e.charAt(begin).equalsKeyword('(')) {
             begin = findBraceEnd(e, begin);
@@ -575,147 +564,124 @@ public class Pattern {
     }
 
     public void parse(Expression regex) {
-//        System.out.println("------ " + regex);
-        // 初始化
+        // 初始化 状态表
         trans = new TransformTable(regex);
         int stateGroupIndex = 1;
         // 循环找能展开的正则分式
-        boolean end;
+        boolean or;
         do {
-            end = true;
+            or = true;
             Set<State> transKeys = new HashSet<>(trans.keySet());
             for (State inState : transKeys) {
                 Map<Expression, Set<State>> inputToStates = trans.get(inState);
                 Set<Expression> inputToStatesKeys = new HashSet<>(inputToStates.keySet());
-                input:
                 for (Expression input : inputToStatesKeys) {
                     Set<State> toState = inputToStates.get(input);
 
-                    boolean handled = false;
-                    boolean and = false;
                     if (canSplit(input)) {
-                        end = false;
-                        State andState = inState;
+                        or = false;
+                        State lastAndState = inState;
                         for (int i = 0; i < input.contents.length; ) {
                             int nodeEnd = findNodeEnd(input, i);
 
                             // 整个都是括号
-                            if (i == 0 && nodeEnd == input.length() - 1 && input.charAt(nodeEnd).equalsKeyword(')')) {
-                                trans.add(inState, input.substring(1, input.length() - 1), new HashSet<>(trans.get(inState, input)));
-                                inState.addGroupIndex(stateGroupIndex);
-                                for (State state : trans.get(inState, input)) {
-                                    state.addGroupIndex(stateGroupIndex);
+                            if (i == 0 && nodeEnd == input.length() - 1)
+                                if (input.charAt(nodeEnd).equalsKeyword(')')) {
+                                    trans.add(inState, input.substring(1, input.length() - 1), new HashSet<>(trans.get(inState, input)));
+                                    inState.addGroupIndex(stateGroupIndex);
+                                    for (State state : trans.get(inState, input)) {
+                                        state.addGroupIndex(stateGroupIndex);
+                                    }
+                                    stateGroupIndex++;
+                                    trans.delete(inState, input);
+                                } else {
+                                    // 没有 or 也 没有 and
+                                    progressSmallestUnit(inState, input);
+                                    break;
                                 }
-                                stateGroupIndex++;
-                                trans.delete(inState, input);
-                            }
 
                             Expression.Node next = input.charAt(nodeEnd + 1);
                             // 如果是 OR 结构
                             if (next.equalsKeyword('|')) {
-                                // 把 OR 部分看成AND的子部分, 直接统一处理了
-                                nodeEnd = findOrEnd(input, nodeEnd + 2);
-                                // 如果整个式子都是 OR 结构
-                                if (!and && nodeEnd == input.length() - 1) {
-                                    // 处理 OR
-
-                                    for (int j = 0; j < input.contents.length; ) {
-                                        nodeEnd = findNodeEnd(input, j);
-//                                        trans.add(inState, input.substring(j, nodeEnd + 1), new HashSet<>(trans.get(inState, input)));
-                                        // 如果toState里有 endState且endState没有任何转换路径
-                                        for (State state : trans.get(inState, input)) {
-                                            if (state.isEnd() && (trans.get(state) == null || trans.get(state).size() == 0)) {
-//                                                 把endState 换成一个新的
-                                                trans.add(inState, input.substring(j, nodeEnd + 1), new State(stateIndex++, state));
-                                            } else
-//                                                 直接添加
-                                                trans.add(inState, input.substring(j, nodeEnd + 1), state);
-                                        }
-                                        j = nodeEnd + 2;
-                                    }
-                                    // 删除原有的转换路径
-                                    trans.delete(inState, input);
-                                    break;
-                                }
+                                // or 结构的第一部分
+                                // 把 已经识别处理的and结构当成or的子部分.
+                                trans.add(lastAndState, input.substring(i, nodeEnd + 1), toState);
+                                lastAndState = inState;
+                                i = nodeEnd + 2;
+                                continue;
                             }
-                            if (and || nodeEnd != input.length() - 1) {
-                                // AND 结构
-                                and = true;
-                                if (nodeEnd == input.length() - 1) {
-                                    trans.add(andState, input.substring(i, nodeEnd + 1), toState);
-                                    // 删除原有的转换路径
-                                    trans.delete(inState, input);
-                                } else {
-                                    State temp = State.build(stateIndex++);
-                                    trans.add(andState, input.substring(i, nodeEnd + 1), temp);
-                                    andState = temp;
-                                }
-                                i = nodeEnd + 1;
+                            // AND 结构
+                            if (nodeEnd == input.length() - 1) {
+                                trans.add(lastAndState, input.substring(i, nodeEnd + 1), toState);
+                                // 删除原有的转换路径
+                                trans.delete(inState, input);
                             } else {
-                                // 不是 or 也 不是 and
-                                // 最外层有一层括号
-
-                                if ((input.charAt(input.length() - 1).equalsKeyword('?'))) {
-                                    if ((input.charAt(input.length() - 1).equalsKeyword('*'))) {
-                                        Expression baseInput = input.substring(0, input.length() - 2);
-                                        for (State rightState : trans.get(inState, input)) {
-                                            trans.add(rightState, baseInput, rightState);
-                                        }
-                                        trans.add(inState, baseInput, new HashSet<>(trans.get(inState, input)));
-                                        trans.add(inState, Expression.emptyInput, new HashSet<>(trans.get(inState, input)));
-                                        trans.delete(inState, input);
-                                    } else if ((input.charAt(input.length() - 1).equalsKeyword('+'))) {
-                                        trans.add(inState, input.substring(0, input.length() - 2), new HashSet<>(trans.get(inState, input)));
-                                        // 结束状态 自旋
-                                        for (State s : trans.get(inState, input))
-                                            trans.add(s, input.substring(0, input.length() - 2), s);
-                                        trans.delete(inState, input);
-                                    } else {
-                                        trans.add(inState, input.substring(0, input.length() - 1), new HashSet<>(trans.get(inState, input)));
-                                        trans.add(inState, Expression.emptyInput, new HashSet<>(trans.get(inState, input)));
-                                        trans.delete(inState, input);
-                                    }
-                                } else if ((input.charAt(input.length() - 1).equalsKeyword('*'))) {
-                                    // 有状态的输出复制到左状态上, 右状态上加自旋, x* 改成x
-                                    Expression baseInput = input.substring(0, input.length() - 1);
-                                    for (State rightState : trans.get(inState, input)) {
-                                        trans.add(rightState, baseInput, rightState);
-                                    }
-                                    trans.add(inState, baseInput, new HashSet<>(trans.get(inState, input)));
-                                    trans.add(inState, Expression.emptyInput, new HashSet<>(trans.get(inState, input)));
-                                    trans.delete(inState, input);
-                                } else if ((input.charAt(input.length() - 1).equalsKeyword('+'))) {
-                                    trans.add(inState, input.substring(0, input.length() - 1), new HashSet<>(trans.get(inState, input)));
-                                    // 结束状态 自旋
-                                    for (State s : trans.get(inState, input))
-                                        trans.add(s, input.substring(0, input.length() - 1), s);
-                                    trans.delete(inState, input);
-                                } else if (input.charAt(0).equalsKeyword('[') && input.charAt(input.length() - 1).equalsKeyword(']')) {
-                                    boolean except = input.charAt(1).equalsKeyword('^');
-                                    Set<State> toStates = trans.get(inState, input);
-                                    Set<Expression> each = resolveMBrace(input.substring(except ? 2 : 1, input.length() - 1));
-                                    if (except) {
-                                        List<Expression.Node> t = each.stream().map(a -> a.charAt(0)).sorted(Comparator.comparingInt(a -> a.content)).collect(Collectors.toList());
-                                        t.add(0, new Expression.Node('^', true));
-                                        trans.add(inState, new Expression(t.toArray(new Expression.Node[0])), new HashSet<>(toStates));
-                                    } else {
-                                        for (Expression s : each) {
-                                            trans.add(inState, s, new HashSet<>(toStates));
-                                        }
-                                    }
-                                    trans.delete(inState, input);
-                                }
-                                break;
+                                State temp = State.build(stateIndex++);
+                               trans.add(lastAndState, input.substring(i, nodeEnd + 1), temp);
+                                lastAndState = temp;
                             }
+                            i = nodeEnd + 1;
                         }
 
                         // 输出中间步骤
                         trans.draw();
                     }
                 }
-//                trans.deleteDelayedNow();
             }
-        } while (!end);
+        } while (!or);
+    }
+
+    private void progressSmallestUnit(State inState, Expression input) {
+        if ((input.charAt(input.length() - 1).equalsKeyword('?'))) {
+            if ((input.charAt(input.length() - 1).equalsKeyword('*'))) {
+                Expression baseInput = input.substring(0, input.length() - 2);
+                for (State rightState : trans.get(inState, input)) {
+                    trans.add(rightState, baseInput, rightState);
+                }
+                trans.add(inState, baseInput, new HashSet<>(trans.get(inState, input)));
+                trans.add(inState, Expression.emptyInput, new HashSet<>(trans.get(inState, input)));
+                trans.delete(inState, input);
+            } else if ((input.charAt(input.length() - 1).equalsKeyword('+'))) {
+                trans.add(inState, input.substring(0, input.length() - 2), new HashSet<>(trans.get(inState, input)));
+                // 结束状态 自旋
+                for (State s : trans.get(inState, input))
+                    trans.add(s, input.substring(0, input.length() - 2), s);
+                trans.delete(inState, input);
+            } else {
+                trans.add(inState, input.substring(0, input.length() - 1), new HashSet<>(trans.get(inState, input)));
+                trans.add(inState, Expression.emptyInput, new HashSet<>(trans.get(inState, input)));
+                trans.delete(inState, input);
+            }
+        } else if ((input.charAt(input.length() - 1).equalsKeyword('*'))) {
+            // 有状态的输出复制到左状态上, 右状态上加自旋, x* 改成x
+            Expression baseInput = input.substring(0, input.length() - 1);
+            for (State rightState : trans.get(inState, input)) {
+                trans.add(rightState, baseInput, rightState);
+            }
+            trans.add(inState, baseInput, new HashSet<>(trans.get(inState, input)));
+            trans.add(inState, Expression.emptyInput, new HashSet<>(trans.get(inState, input)));
+            trans.delete(inState, input);
+        } else if ((input.charAt(input.length() - 1).equalsKeyword('+'))) {
+            trans.add(inState, input.substring(0, input.length() - 1), new HashSet<>(trans.get(inState, input)));
+            // 结束状态 自旋
+            for (State s : trans.get(inState, input))
+                trans.add(s, input.substring(0, input.length() - 1), s);
+            trans.delete(inState, input);
+        } else if (input.charAt(0).equalsKeyword('[') && input.charAt(input.length() - 1).equalsKeyword(']')) {
+            boolean except = input.charAt(1).equalsKeyword('^');
+            Set<State> toStates = trans.get(inState, input);
+            Set<Expression> each = resolveMBrace(input.substring(except ? 2 : 1, input.length() - 1));
+            if (except) {
+                List<Expression.Node> t = each.stream().map(a -> a.charAt(0)).sorted(Comparator.comparingInt(a -> a.content)).collect(Collectors.toList());
+                t.add(0, new Expression.Node('^', true));
+                trans.add(inState, new Expression(t.toArray(new Expression.Node[0])), new HashSet<>(toStates));
+            } else {
+                for (Expression s : each) {
+                    trans.add(inState, s, new HashSet<>(toStates));
+                }
+            }
+            trans.delete(inState, input);
+        }
     }
 
     private boolean canSplit(Expression regex) {
