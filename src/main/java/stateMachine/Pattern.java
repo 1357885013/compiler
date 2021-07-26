@@ -120,8 +120,9 @@ public class Pattern {
                     if (leftS != rightS)
                         // 如果包含和输入相同的自旋
                         if (trans.get(rightS, input) != null && trans.get(rightS, input).contains(rightS)) {
-                            // 记录在案
-                            spins.putIfAbsent(rightS, new HashSet<>(List.of(new Side(leftS, input))));
+                            // 记录在案,
+                            // todo: 处理 两个输入一个自旋的情况
+                            spins.putIfAbsent(rightS, new HashSet<>(Arrays.asList(new Side(leftS, input))));
                             spins.get(rightS).add(new Side(leftS, input));
                         }
                 }
@@ -617,7 +618,7 @@ public class Pattern {
                                 trans.delete(inState, input);
                             } else {
                                 State temp = State.build(stateIndex++);
-                               trans.add(lastAndState, input.substring(i, nodeEnd + 1), temp);
+                                trans.add(lastAndState, input.substring(i, nodeEnd + 1), temp);
                                 lastAndState = temp;
                             }
                             i = nodeEnd + 1;
