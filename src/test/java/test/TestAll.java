@@ -20,10 +20,12 @@ class TestAll {
 
     @Test
     public void test2() {
-        Assertions.assertEquals(1, 2);
         Pattern pattern = Pattern.compile("((a|b)?b)+", true);
         TestUtil.assertSame(pattern, "b");
         TestUtil.assertSame(pattern, "abab");
+        TestUtil.assertSame(pattern, "abbbb");
+        TestUtil.assertSame(pattern, "abbbb");
+        TestUtil.assertSame(pattern, "babab");
         TestUtil.assertSame(pattern, "bbbb");
         TestUtil.assertSame(pattern, "ab");
         TestUtil.assertSame(pattern, "ababab");
@@ -80,10 +82,11 @@ class TestAll {
         Pattern pattern = Pattern.compile("[abc]+", true);
         TestUtil.assertSame(pattern, "abc");
         TestUtil.assertSame(pattern, "abcabc");
-        TestUtil.assertEmpty(pattern, "ab");
-        TestUtil.assertEmpty(pattern, "abab");
-        TestUtil.assertEmpty(pattern, "a");
-        TestUtil.assertEmpty(pattern, "ab");
+        TestUtil.assertSame(pattern, "ab");
+        TestUtil.assertSame(pattern, "abab");
+        TestUtil.assertSame(pattern, "a");
+        TestUtil.assertSame(pattern, "ab");
+        TestUtil.assertEmpty(pattern, "dab");
     }
 
     @Test

@@ -113,7 +113,8 @@ public class Pattern {
     }
 
     private void changeSpin2Circle() {
-        Map<State, Set<Side>> spins = new HashMap<>();
+        // state input states
+        Map<State, Map<Expression, Set<State>>> spins = new HashMap<>();
         for (State leftS : trans.keySet()) {
             for (Expression input : trans.get(leftS).keySet()) {
                 for (State rightS : trans.get(leftS).get(input)) {
@@ -121,9 +122,7 @@ public class Pattern {
                         // 如果包含和输入相同的自旋
                         if (trans.get(rightS, input) != null && trans.get(rightS, input).contains(rightS)) {
                             // 记录在案,
-                            // todo: 处理 两个输入一个自旋的情况
-                            spins.putIfAbsent(rightS, new HashSet<>(Arrays.asList(new Side(leftS, input))));
-                            spins.get(rightS).add(new Side(leftS, input));
+                            spins.computeIfAbsent(rightS, v -> new HashMap<>()).computeIfAbsent(input, v -> new HashSet<>()).add(leftS);
                         }
                 }
             }
@@ -140,14 +139,10 @@ public class Pattern {
                 trans.add(blueprint, trans.get(rightState));
 
                 // 删除 本来的状态
-                for (Side side : spins.get(rightState)) {
-                    State leftState = side.getState();
-                    Expression input = side.getInput();
+                for (Expression input : spins.get(rightState).keySet()) {
                     trans.delete(blueprint, input, rightState);
                 }
-                for (Side side : spins.get(rightState)) {
-                    State leftState = side.getState();
-                    Expression input = side.getInput();
+                for (Expression input : spins.get(rightState).keySet()) {
                     // 复制每个回旋的状态
                     State nn = new State(stateIndex++, blueprint);
                     trans.add(nn, trans.get(blueprint));
@@ -155,8 +150,10 @@ public class Pattern {
                     trans.add(nn, input, nn);
                     newStates.put(input, nn);
                     // 老的输入指向新的
-                    trans.delete(leftState, input, rightState);
-                    trans.add(leftState, input, nn);
+                    for (State leftState : spins.get(rightState).get(input)) {
+                        trans.delete(leftState, input, rightState);
+                        trans.add(leftState, input, nn);
+                    }
                     // 老的输出指向新的
                     trans.delete(rightState, input, rightState);
                     trans.add(rightState, input, nn);
