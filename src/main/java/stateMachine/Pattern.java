@@ -170,19 +170,41 @@ public class Pattern {
 
     private void deleteUnreachableState() {
         // 删除没有输入边的非start state
+        boolean stop;
+        boolean first = true;
         Map<State, Integer> states = new HashMap<>();
-        for (State leftS : trans.keySet()) {
-            if (!states.containsKey(leftS)) states.put(leftS, 0);
-            for (Expression input : trans.get(leftS).keySet()) {
-                for (State rightS : trans.get(leftS).get(input)) {
-                    states.put(rightS, states.getOrDefault(rightS, 0) + 1);
+
+        do {
+            stop = true;
+            if (first)
+                // 统计 输入边的数量
+                for (State leftS : trans.keySet()) {
+                    if (!states.containsKey(leftS)) states.put(leftS, 0);
+                    for (Expression input : trans.get(leftS).keySet()) {
+                        for (State rightS : trans.get(leftS).get(input)) {
+                            states.put(rightS, states.getOrDefault(rightS, 0) + 1);
+                        }
+                    }
+                }
+            first = false;
+            Iterator<Map.Entry<State, Integer>> iterator = states.entrySet().iterator();
+            while (iterator.hasNext()) {
+                State state = iterator.next().getKey();
+                if (states.get(state) == 0 && !state.isStart()) {
+                    if (trans.get(state) != null)
+                        for (Expression input : trans.get(state).keySet()) {
+                            // 删除之前先减去指向的状态.
+                            for (State stateRight : trans.get(state, input)) {
+                                int count = states.getOrDefault(stateRight, 1);
+                                states.put(stateRight, --count);
+                            }
+                        }
+                    trans.delete(state);
+                    iterator.remove();
+                    stop = false;
                 }
             }
-        }
-        for (State state : states.keySet()) {
-            if (states.get(state) == 0 && !state.isStart())
-                trans.delete(state);
-        }
+        } while (!stop);
     }
 
     private boolean isIntersect(String left, String right) {
