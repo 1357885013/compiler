@@ -127,7 +127,7 @@ public class Expression {
 
     @Override
     public String toString() {
-        return Arrays.stream(contents).map(a -> String.valueOf(a.content)).collect(Collectors.joining());
+        return Arrays.stream(contents).map(a -> (a.isKeyword ? "_" : "") + String.valueOf(a.content)).collect(Collectors.joining());
 //        return contents.length > 0 ? String.valueOf(contents[0].content) : "";
     }
 
