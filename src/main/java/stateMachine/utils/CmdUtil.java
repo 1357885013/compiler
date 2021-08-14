@@ -9,7 +9,7 @@ import java.util.Arrays;
 public class CmdUtil {
     private static final ProcessBuilder process = new ProcessBuilder();
 
-    public static void run(String cmd) {
+    public static boolean run(String cmd) {
         System.out.println("run : " + cmd);
         ProcessBuilder process = new ProcessBuilder(cmd.split(" "));
         Process p;
@@ -31,6 +31,8 @@ public class CmdUtil {
             System.out.println(Arrays.toString(cmd.split(" ")));
             System.out.print("error");
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 }

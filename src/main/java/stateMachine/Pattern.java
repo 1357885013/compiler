@@ -13,10 +13,6 @@ public class Pattern {
     private int stateIndex = 0;
     private String regex;
 
-    public void print() {
-        trans.draw();
-    }
-
     private boolean drawUniteLine = true;
 
     public static void main(String[] args) throws IOException {

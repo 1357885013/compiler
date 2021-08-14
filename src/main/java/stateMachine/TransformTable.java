@@ -209,7 +209,7 @@ public class TransformTable {
         }
         CmdUtil.run("dot -T png -O " + fileName);
         // 删除dot 文件.
-        Arrays.stream(Objects.requireNonNull(directory.listFiles())).filter(ff -> ff.getName().endsWith("dot")).forEach(File::delete);
+//            Arrays.stream(Objects.requireNonNull(directory.listFiles())).filter(ff -> ff.getName().endsWith("dot")).forEach(File::delete);
     }
 
 }

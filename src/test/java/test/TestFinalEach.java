@@ -39,7 +39,19 @@ class TestFinalEach {
     @Test
     public void test31() {
         // todo: error
-        Pattern pattern = Pattern.compile("\"(\\\\\"|.)*?\"", true);
+        Pattern pattern = Pattern.compile("\\*(\\\\\\*|.)*?\\*", true);
+        TestUtil.assertSame(pattern, "aaa");
+        TestUtil.assertSame(pattern, "aaaaaa");
+        TestUtil.assertEquals(pattern, "aaaaaaaaa", "aaaaaa|aaa|");
+        TestUtil.assertEmpty(pattern, "aa");
+        TestUtil.assertEquals(pattern, "aaaa", "aaa|");
+        TestUtil.assertEquals(pattern, "aaaaa", "aaa|");
+    }
+
+    @Test
+    public void test311() {
+        // todo: error
+        Pattern pattern = Pattern.compile("a(a|.)*?a", true);
         TestUtil.assertSame(pattern, "aaa");
         TestUtil.assertSame(pattern, "aaaaaa");
         TestUtil.assertEquals(pattern, "aaaaaaaaa", "aaaaaa|aaa|");
