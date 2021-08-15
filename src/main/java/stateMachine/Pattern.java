@@ -90,12 +90,19 @@ public class Pattern {
         pattern.deleteEmptyLine();
         if (debug)
             pattern.trans.draw("3_DeleteEmptyLine");
+        // 合并同input边, 不用考虑 . 和 ^[
+        pattern.uniteMultipleOutputStates();
+        pattern.deleteEmptyLine();
+        if (debug)
+            pattern.trans.draw("15_UniteMultipleOutputStates");
         // 顺序处理 . 和 ^[
         pattern.progressDotAndExcept();
+        pattern.deleteEmptyLine();
         if (debug)
             pattern.trans.draw("4_ProgressDotAndExcept");
         // 多个自旋 -> 大回环
         pattern.changeSpin2Circle();
+        pattern.deleteEmptyLine();
         if (debug)
             pattern.trans.draw("4_ChangeSpin2Circle");
         // 合并同input边, 不用考虑 . 和 ^[

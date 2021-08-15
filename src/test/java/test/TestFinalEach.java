@@ -49,15 +49,54 @@ class TestFinalEach {
     }
 
     @Test
+    public void test310() {
+        Pattern pattern = Pattern.compile("a(\\a|.)*?a", true);
+        TestUtil.assertSame(pattern, "a\\aa");
+        TestUtil.assertSame(pattern, "a\\a\\a\\a\\aa");
+        TestUtil.assertSame(pattern, "aaba\\aaaaa");
+        TestUtil.assertSame(pattern, "aa");
+        TestUtil.assertSame(pattern, "a\\aaa");
+        TestUtil.assertSame(pattern, "aa\\aaa");
+        TestUtil.assertEmpty(pattern, "a");
+        TestUtil.assertEmpty(pattern, "baaa");
+        TestUtil.assertEmpty(pattern, "baa");
+        TestUtil.assertEmpty(pattern, "ba");
+        TestUtil.assertEmpty(pattern, "b\\a");
+        TestUtil.assertSame(pattern, "aaaabaaa");
+    }
+
+    @Test
+    public void test3100() {
+        Pattern pattern = Pattern.compile("a(0a|b)*?a", true);
+        TestUtil.assertSame(pattern, "a0aa");
+        TestUtil.assertSame(pattern, "a0a0a0a0aa");
+        TestUtil.assertSame(pattern, "abbb0abbba");
+        TestUtil.assertSame(pattern, "aa");
+        TestUtil.assertSame(pattern, "a0aba");
+        TestUtil.assertSame(pattern, "ab0aba");
+        TestUtil.assertEmpty(pattern, "a");
+        TestUtil.assertEmpty(pattern, "baaa");
+        TestUtil.assertEmpty(pattern, "baa");
+        TestUtil.assertEmpty(pattern, "ba");
+        TestUtil.assertEmpty(pattern, "b0a");
+        TestUtil.assertEmpty(pattern, "a0baa");
+        TestUtil.assertSame(pattern, "abbbbbba");
+    }
+
+    @Test
     public void test311() {
-        // todo: error
         Pattern pattern = Pattern.compile("a(a|.)*?a", true);
         TestUtil.assertSame(pattern, "aaa");
         TestUtil.assertSame(pattern, "aaaaaa");
-        TestUtil.assertEquals(pattern, "aaaaaaaaa", "aaaaaa|aaa|");
-        TestUtil.assertEmpty(pattern, "aa");
-        TestUtil.assertEquals(pattern, "aaaa", "aaa|");
-        TestUtil.assertEquals(pattern, "aaaaa", "aaa|");
+        TestUtil.assertSame(pattern, "aaaaaaaaa");
+        TestUtil.assertSame(pattern, "aa");
+        TestUtil.assertSame(pattern, "aaaa");
+        TestUtil.assertSame(pattern, "aaaaa");
+        TestUtil.assertEmpty(pattern, "a");
+        TestUtil.assertEmpty(pattern, "baaa");
+        TestUtil.assertEmpty(pattern, "baa");
+        TestUtil.assertEmpty(pattern, "ba");
+        TestUtil.assertSame(pattern, "aaaabaaa");
     }
 
     @Test
