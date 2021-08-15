@@ -39,13 +39,27 @@ class TestFinalEach {
     @Test
     public void test31() {
         // todo: error
-        Pattern pattern = Pattern.compile("\\*(\\\\\\*|.)*?\\*", true);
-        TestUtil.assertSame(pattern, "aaa");
-        TestUtil.assertSame(pattern, "aaaaaa");
-        TestUtil.assertEquals(pattern, "aaaaaaaaa", "aaaaaa|aaa|");
-        TestUtil.assertEmpty(pattern, "aa");
-        TestUtil.assertEquals(pattern, "aaaa", "aaa|");
-        TestUtil.assertEquals(pattern, "aaaaa", "aaa|");
+        // 只要里面没有 另一个注释的开头就行.
+        Pattern pattern = Pattern.compile("\\\\\\*(\\\\\\*|.)*?\\*\\\\", true);
+        TestUtil.assertSame(pattern, "\\*this is a word,and this is cant split*\\");
+        TestUtil.assertSame(pattern, "\\*this is a *word,and * this is cant split*\\");
+        TestUtil.assertSame(pattern, "\\*this is a \\word,and\\ this is cant split*\\");
+        TestUtil.assertSame(pattern, "\\*this is a \\*word,and this \\* is cant split*\\");
+        TestUtil.assertSame(pattern, "\\*this is a \\*word,and this \\* \\ is cant split*\\");
+        TestUtil.assertSame(pattern, "\\***\\");
+        TestUtil.assertSame(pattern, "\\**\\");
+        TestUtil.assertEmpty(pattern, "\\*");
+        TestUtil.assertEmpty(pattern, "*\\");
+        TestUtil.assertEmpty(pattern, "\\*abc");
+        TestUtil.assertEmpty(pattern, "abc*\\");
+        TestUtil.assertEmpty(pattern, "\\*abc*");
+        TestUtil.assertEmpty(pattern, "*abc*\\");
+        TestUtil.assertEmpty(pattern, "*abc*\\");
+        TestUtil.assertEmpty(pattern, "baaa");
+        TestUtil.assertEmpty(pattern, "baa");
+        TestUtil.assertEmpty(pattern, "ba");
+        TestUtil.assertEmpty(pattern, "b\\a");
+        TestUtil.assertSame(pattern, "***");
     }
 
     @Test
@@ -85,7 +99,7 @@ class TestFinalEach {
 
     @Test
     public void test311() {
-        Pattern pattern = Pattern.compile("a(a|.)*?a", true);
+        Pattern pattern = Pattern.compile("a(ba|.)*?a", true);
         TestUtil.assertSame(pattern, "aaa");
         TestUtil.assertSame(pattern, "aaaaaa");
         TestUtil.assertSame(pattern, "aaaaaaaaa");

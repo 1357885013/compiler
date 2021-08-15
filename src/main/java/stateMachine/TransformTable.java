@@ -2,10 +2,8 @@ package stateMachine;
 
 import stateMachine.utils.CmdUtil;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class TransformTable {
@@ -151,7 +149,7 @@ public class TransformTable {
     public void add(State state, LinkedHashMap<Expression, Set<State>> outputs, State oState) {
         LinkedHashMap<Expression, Set<State>> inputs = trans.getOrDefault(state, new LinkedHashMap<>());
         for (Expression input : outputs.keySet()) {
-//            if (canAddEdge(state, input)) {
+            if (canAddEdge(state, input)) {
                 if (inputs.containsKey(input) && outputs.get(input) != null) {
                     inputs.get(input).addAll(outputs.get(input));
 
@@ -163,7 +161,7 @@ public class TransformTable {
                     inputs.get(input).remove(oState);
                     inputs.get(input).add(state);
                 }
-//            }
+            }
         }
         trans.put(state, inputs);
     }
@@ -223,7 +221,8 @@ public class TransformTable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        CmdUtil.run("dot -T png -O " + f.getAbsolutePath());
+//        CmdUtil.run("dot -T png -O " + f.getAbsolutePath());
+        CmdUtil.run("dot -T png -O " + fileName);
         // 删除dot 文件.
 //            Arrays.stream(Objects.requireNonNull(directory.listFiles())).filter(ff -> ff.getName().endsWith("dot")).forEach(File::delete);
     }

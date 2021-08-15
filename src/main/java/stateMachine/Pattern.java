@@ -23,7 +23,7 @@ public class Pattern {
 //        pattern = Pattern.compile("--|\\+=|-\\+|\\*=|/=|&&|\\|\\||!=|==|>=|<=|\\{|\\}|\\[|\\]|\\(|\\)|\\+|\\-|\\*|/|=|&|\\||!|:|;|,|<|>|'|\\\"|\\.", true);
 
 //        pattern = Pattern.compile("ca(.|a)*", true);
-        pattern = Pattern.compile("a|b|c|dA|bB|cC", true);
+//        pattern = Pattern.compile("a|b|c|dA|bB|cC", true);
 
 //        pattern = Pattern.compile("([a-c][a-c0-2]*)|(d+)", true);
 //        pattern = Pattern.compile("((\\+\\+)|(--))|((\\+=)|(-\\+)|(\\*=))", true);
@@ -34,7 +34,7 @@ public class Pattern {
 //        pattern = Pattern.compile("([a-b][a-b0-1]*1)|(b+2)", true); //((a|b)(a|b|0|1)*1)|(b+2)
 //        pattern = Pattern.compile("([a-b][a-b0-1]*1)", true);
 //        pattern = Pattern.compile("([a-b]*)|(b+)", true);
-//        pattern = Pattern.compile("(b*)|(b+)", true);
+        pattern = Pattern.compile("(b*)|(b+)", true);
 
 //        pattern = Pattern.compile(".*bc", true);
 //        pattern = Pattern.compile("b*?ca", true);
