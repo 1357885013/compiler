@@ -12,6 +12,7 @@ class TestMultiSpin {
     public void testRight1() {
         TestUtil.assertEmpty(pattern, "bc2");
         TestUtil.assertEmpty(pattern, "bd2");
+        // todo : error
         TestUtil.assertEmpty(pattern, "bbbc2");
         TestUtil.assertEmpty(pattern, "bbbbbbcbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb2");
         TestUtil.assertEmpty(pattern, "3");
