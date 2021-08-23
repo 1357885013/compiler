@@ -2,8 +2,10 @@ package stateMachine;
 
 import stateMachine.utils.CmdUtil;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.*;
 
 public class TransformTable {
@@ -12,6 +14,14 @@ public class TransformTable {
     private State startState;
     // 删掉的边不允许再加上了。
     private Set<String> exceptEdge = new HashSet<>();
+
+    public TransformTable(TransformTable t) {
+        trans.put(t.getStartState(), new LinkedHashMap<>());
+    }
+
+    public TransformTable(StateSet t) {
+        trans.put(t, new LinkedHashMap<>());
+    }
 
     public TransformTable(Expression regex) {
         startState = State.start();

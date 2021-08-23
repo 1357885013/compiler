@@ -37,7 +37,9 @@ class TestMultiSpin {
         TestUtil.assertEmpty(pattern, "c02");
         TestUtil.assertEquals(pattern, "a12", "a1|");
         TestUtil.assertEquals(pattern, "b12", "b1|");
-        TestUtil.assertEquals(pattern, "c12", "c1|");
+        TestUtil.assertEquals(pattern, "c10", "c1|");
+        TestUtil.assertEquals(pattern, "c1a", "c1|");
+        TestUtil.assertEquals(pattern, "c1b", "c1|");
 
         TestUtil.assertEquals(pattern, "aabc012", "aabc01|");
         TestUtil.assertEquals(pattern, "babc012", "babc01|");
