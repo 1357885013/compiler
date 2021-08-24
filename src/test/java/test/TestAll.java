@@ -103,12 +103,17 @@ class TestAll {
     @Test
     public void test9() {
         Pattern pattern = Pattern.compile("abc[\\w]", true);
+        TestUtil.assertSame(pattern, "abca");
+        TestUtil.assertSame(pattern, "abcb");
+        TestUtil.assertSame(pattern, "abcc");
         TestUtil.assertSame(pattern, "abcd");
-        TestUtil.assertSame(pattern, "abcdefghi");
-        TestUtil.assertSame(pattern, "abcabcdefdefghighi");
-        TestUtil.assertEmpty(pattern, "a#");
-        TestUtil.assertEmpty(pattern, "a#");
-        TestUtil.assertEmpty(pattern, "d#");
+        TestUtil.assertSame(pattern, "abcA");
+        TestUtil.assertSame(pattern, "abcB");
+        TestUtil.assertSame(pattern, "abcC");
+        TestUtil.assertSame(pattern, "abcD");
+        TestUtil.assertEmpty(pattern, "abc.");
+        TestUtil.assertEmpty(pattern, "abc,");
+        TestUtil.assertEmpty(pattern, "abc:");
     }
 
     @Test

@@ -116,12 +116,19 @@ class TestFinalEach {
 
     @Test
     public void test4() {
-        Pattern pattern = Pattern.compile("(\\+\\+|--|\\+=|-\\+|\\*=|/=|&&|\\|\\||!=|==|>=|<=)", true);
-        TestUtil.assertSame(pattern, "abc");
-        TestUtil.assertSame(pattern, "aabc");
-        TestUtil.assertSame(pattern, "ababc");
-        TestUtil.assertSame(pattern, "abcabc");
-        TestUtil.assertEmpty(pattern, "aba");
+        Pattern pattern = Pattern.compile("(\\+\\+|--|\\+=|-=|\\*=|/=|&&|\\|\\||!=|==|>=|<=)", true);
+        TestUtil.assertSame(pattern, "++");
+        TestUtil.assertSame(pattern, "--");
+        TestUtil.assertSame(pattern, "+=");
+        TestUtil.assertSame(pattern, "-=");
+        TestUtil.assertSame(pattern, "*=");
+        TestUtil.assertSame(pattern, "/=");
+        TestUtil.assertSame(pattern, "&&");
+        TestUtil.assertSame(pattern, "||");
+        TestUtil.assertSame(pattern, "!=");
+        TestUtil.assertSame(pattern, "==");
+        TestUtil.assertSame(pattern, ">=");
+        TestUtil.assertSame(pattern, "<=");
         TestUtil.assertEmpty(pattern, "aa");
     }
 

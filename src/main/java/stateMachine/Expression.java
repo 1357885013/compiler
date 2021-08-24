@@ -30,24 +30,34 @@ public class Expression {
 
                     // \ 之后如果是 w d s S
                     if (next == 'w') {
-                        temps.add(new Node('[', false));
-                        temps.addAll(Arrays.stream("a-zA-Z0-9".chars().toArray()).mapToObj(a -> new Node((char) a, false)).collect(Collectors.toList()));
-                        temps.add(new Node(']', false));
+                        temps.add(new Node('[', true));
+                        temps.addAll(Arrays.stream("a-zA-Z0-9".chars().toArray()).mapToObj(a -> {
+                            if (a == '-')
+                                return new Node((char) a, true);
+                            else
+                                return new Node((char) a, false);
+                        }).collect(Collectors.toList()));
+                        temps.add(new Node(']', true));
                         resolved = true;
                     } else if (next == 'd') {
-                        temps.add(new Node('[', false));
-                        temps.addAll(Arrays.stream("0-9".chars().toArray()).mapToObj(a -> new Node((char) a, false)).collect(Collectors.toList()));
-                        temps.add(new Node(']', false));
+                        temps.add(new Node('[', true));
+                        temps.addAll(Arrays.stream("0-9".chars().toArray()).mapToObj(a -> {
+                            if (a == '-')
+                                return new Node((char) a, true);
+                            else
+                                return new Node((char) a, false);
+                        }).collect(Collectors.toList()));
+                        temps.add(new Node(']', true));
                         resolved = true;
                     } else if (next == 's') {
-                        temps.add(new Node('[', false));
+                        temps.add(new Node('[', true));
                         temps.addAll(Arrays.stream(" \r\f\t\n".chars().toArray()).mapToObj(a -> new Node((char) a, false)).collect(Collectors.toList()));
-                        temps.add(new Node(']', false));
+                        temps.add(new Node(']', true));
                         resolved = true;
                     } else if (next == 'S') {
-                        temps.add(new Node('[', false));
+                        temps.add(new Node('[', true));
                         temps.addAll(Arrays.stream("\r\f\t".chars().toArray()).mapToObj(a -> new Node((char) a, false)).collect(Collectors.toList()));
-                        temps.add(new Node(']', false));
+                        temps.add(new Node(']', true));
                         resolved = true;
                     }
 

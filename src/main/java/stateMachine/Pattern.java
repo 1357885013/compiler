@@ -265,7 +265,7 @@ public class Pattern {
 
     private StateSet getAllStatesCanReach(State state) {
         StateSet newState = StateSet.build(stateIndex++);
-        if (getAllStatesCanReach(state, newState.states, newState.inputs)) newState.setEnd(true);
+        if (getAllStatesCanReach(state, newState.states, newState.inputs)) newState.setEndTrue();
         return newState;
     }
 
@@ -275,7 +275,7 @@ public class Pattern {
         for (State which : whichs.states) {
             Set<State> toStates = trans.get(which, input);
             if (toStates == null) continue;
-            if (getAllStatesCanReach(toStates, newState.states, newState.inputs)) newState.setEnd(true);
+            if (getAllStatesCanReach(toStates, newState.states, newState.inputs)) newState.setEndTrue();
         }
         newState.inputs.remove(Expression.emptyInput);
         return newState;
@@ -428,12 +428,23 @@ public class Pattern {
         this.trans = t;
     }
 
+    // todo : 暂时是像匹配小括号那样匹配中括号
     private int findMidBraceEnd(Expression e, int begin) {
+        Stack<Boolean> braces = new Stack<Boolean>();
         if (e.charAt(begin).equalsKeyword('[')) {
+            braces.push(true);
+            begin++;
             Expression.Node now;
-            while (!(now = e.charAt(++begin)).isEmpty) {
-                if (now.equalsKeyword(']'))
-                    return begin;
+            while (!(now = e.charAt(begin++)).isEmpty) {
+                if (now.equalsKeyword('['))
+                    braces.add(true);
+                else if (now.equalsKeyword(']')) {
+                    if (braces.peek()) {
+                        braces.pop();
+                        if (braces.empty())
+                            return begin - 1;
+                    }
+                }
             }
         }
         return begin;
@@ -613,6 +624,9 @@ public class Pattern {
 
     private Set<Expression> resolveMBrace(Expression body) {
         Set<Expression> result = new HashSet<>();
+        while (body.charAt(0).equals('[') && body.charAt(body.length() - 1).equals(']')) {
+            body = body.substring(1, body.length() - 1);
+        }
         for (int i = 0; i < body.length(); i++) {
             if (i < body.length() - 2 && body.charAt(i + 1).equalsKeyword('-')) {
                 result.addAll(resolveMBraceIn(body.substring(i, i + 3)));
