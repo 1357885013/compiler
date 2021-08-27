@@ -3,6 +3,7 @@ package test;
 
 import org.junit.jupiter.api.Test;
 import stateMachine.Pattern;
+import stateMachine.utils.TestUtil;
 
 import static stateMachine.utils.TestUtil.testEach;
 
@@ -26,22 +27,19 @@ class TestMidBrace {
     @Test
     public void test2() {
         Pattern pattern;
-        pattern = Pattern.compile("[^abc]");
-        testEach(pattern,
-                new String[]{"a", ""},
-                new String[]{"b", ""},
-                new String[]{"c", ""},
-                new String[]{"d", "d|"},
-                new String[]{"\n", "\n|"},
-                new String[]{"f", "f|"}
-        );
-
+        pattern = Pattern.compile("[^abc]", true);
+        TestUtil.assertEmpty(pattern, "a");
+        TestUtil.assertEmpty(pattern, "b");
+        TestUtil.assertEmpty(pattern, "c");
+        TestUtil.assertSame(pattern, "d");
+        TestUtil.assertSame(pattern, "\n");
+        TestUtil.assertSame(pattern, "f");
     }
 
     @Test
     public void test3() {
         Pattern pattern;
-        pattern = Pattern.compile("([^abc]1)|([^ade]2)|([^fg]3)|([^ghijklmn]4)|[t]5");
+        pattern = Pattern.compile("([^abc]1)|([^ade]2)|([^fg]3)|([^ghijklmn]4)|[t]5", true);
         testEach(pattern,
                 new String[]{"a1", ""},
                 new String[]{"b1", ""},

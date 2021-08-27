@@ -18,14 +18,67 @@ class TestFinalEach {
     }
 
     @Test
+    public void test1111() {
+        Pattern pattern = Pattern.compile("(//.*?(\\n|$))|" +
+                "(/\\*.*?\\*/)|" +
+                "([abc][abc01]*)|" +
+                "(\\d+)|" +
+                "(\"((\\\\\")|.)*?\")|" +
+                "\\+\\+|--|\\+=|-\\+|\\*=|/=|&&|\\|\\||!=|==|>=|<=|" +
+                "\\{|\\}|\\[|\\]|\\(|\\)|\\+|\\-|\\*|/|=|&|\\||!|:|;|,|<|>|'|\\\"| ", false);
+        TestUtil.assertSame(pattern, "abc");
+        TestUtil.assertSame(pattern, "a");
+        TestUtil.assertEquals(pattern, "abc a", "abc| |a|");
+        TestUtil.assertEquals(pattern, "abc a = 10", "abc| |a| |=| |10|");
+        TestUtil.assertSame(pattern, "b");
+    }
+
+    @Test
+    public void test11111() {
+        Pattern pattern = Pattern.compile(
+                "([abc][abc01]*)|" +
+                        "([01]+)|" +
+                        "\\+\\+|--|\\+=|-\\+|\\*=|/=|&&|\\|\\||!=|==|>=|<=|" +
+                        ":|=|;|,|<|>|'|\\\"| ", true);
+//        TestUtil.assertSame(pattern, "abc");
+//        TestUtil.assertSame(pattern, "a");
+//        TestUtil.assertEquals(pattern, "abc a", "abc|a|");
+        TestUtil.assertEquals(pattern, "abc a = 10", "abc| |a| |=| |10|");
+        TestUtil.assertSame(pattern, "b");
+    }
+
+    @Test
+    public void test1111111() {
+        Pattern pattern = Pattern.compile("([abc][abc01]*)| ", true);
+        TestUtil.assertSame(pattern, " ");
+    }
+    @Test
+    public void test1112111() {
+        Pattern pattern = Pattern.compile(" *", true);
+        TestUtil.assertSame(pattern, " ");
+        TestUtil.assertSame(pattern, "  ");
+        TestUtil.assertSame(pattern, "   ");
+        TestUtil.assertSame(pattern, "                       ");
+        TestUtil.assertEmpty(pattern,"abc");
+    }
+
+    @Test
     public void test2() {
         Pattern pattern = Pattern.compile("([a-zA-Z_][a-zA-Z0-9_]*)", false);
         TestUtil.assertSame(pattern, "absdfeASD3213____");
         TestUtil.assertSame(pattern, "hfdosab42319unf928290hjf0t32fre34243");
         TestUtil.assertSame(pattern, "a");
+        TestUtil.assertEquals(pattern, "public a", "public|");
         TestUtil.assertSame(pattern, "b");
         TestUtil.assertEmpty(pattern, "0");
         TestUtil.assertEmpty(pattern, "9aa");
+    }
+
+    @Test
+    public void testBlack() {
+        Pattern pattern = Pattern.compile("\b", false);
+        TestUtil.assertSame(pattern, " ");
+        TestUtil.assertEmpty(pattern, "b");
     }
 
     @Test
@@ -40,44 +93,43 @@ class TestFinalEach {
     public void test31() {
         // todo: error
         // 只要里面没有 另一个注释的开头就行.
-//        Pattern pattern = Pattern.compile("\\\\\\*(\\\\\\*|.)*?\\*\\\\", true);
-//        TestUtil.assertSame(pattern, "\\*this is a word,and this is cant split*\\");
-//        TestUtil.assertSame(pattern, "\\*this is a *word,and * this is cant split*\\");
-//        TestUtil.assertSame(pattern, "\\*this is a \\word,and\\ this is cant split*\\");
-//        TestUtil.assertSame(pattern, "\\*this is a \\*word,and this \\* is cant split*\\");
-//        TestUtil.assertSame(pattern, "\\*this is a \\*word,and this \\* \\ is cant split*\\");
-//        TestUtil.assertSame(pattern, "\\***\\");
-//        TestUtil.assertSame(pattern, "\\**\\");
-//        TestUtil.assertEmpty(pattern, "\\*");
-//        TestUtil.assertEmpty(pattern, "*\\");
-//        TestUtil.assertEmpty(pattern, "\\*abc");
-//        TestUtil.assertEmpty(pattern, "abc*\\");
-//        TestUtil.assertEmpty(pattern, "\\*abc*");
-//        TestUtil.assertEmpty(pattern, "*abc*\\");
-//        TestUtil.assertEmpty(pattern, "*abc*\\");
-//        TestUtil.assertEmpty(pattern, "baaa");
-//        TestUtil.assertEmpty(pattern, "baa");
-//        TestUtil.assertEmpty(pattern, "ba");
-//        TestUtil.assertEmpty(pattern, "b\\a");
-//        TestUtil.assertSame(pattern, "***");
+        Pattern pattern = Pattern.compile("\\\\\\*(\\\\\\*|.)*?\\*\\\\", true);
+        TestUtil.assertSame(pattern, "\\*this is a word,and this is cant split*\\");
+        TestUtil.assertSame(pattern, "\\*this is a *word,and * this is cant split*\\");
+        TestUtil.assertSame(pattern, "\\*this is a \\word,and\\ this is cant split*\\");
+        TestUtil.assertSame(pattern, "\\*this is a \\*word,and this \\* is cant split*\\");
+        TestUtil.assertSame(pattern, "\\*this is a \\*word,and this \\* \\ is cant split*\\");
+        TestUtil.assertSame(pattern, "\\***\\");
+        TestUtil.assertSame(pattern, "\\**\\");
+        TestUtil.assertEmpty(pattern, "\\*");
+        TestUtil.assertEmpty(pattern, "*\\");
+        TestUtil.assertEmpty(pattern, "\\*abc");
+        TestUtil.assertEmpty(pattern, "abc*\\");
+        TestUtil.assertEmpty(pattern, "\\*abc*");
+        TestUtil.assertEmpty(pattern, "*abc*\\");
+        TestUtil.assertEmpty(pattern, "*abc*\\");
+        TestUtil.assertEmpty(pattern, "baaa");
+        TestUtil.assertEmpty(pattern, "baa");
+        TestUtil.assertEmpty(pattern, "ba");
+        TestUtil.assertEmpty(pattern, "b\\a");
+        TestUtil.assertEmpty(pattern, "***");
     }
 
     @Test
     public void test310() {
-        // todo : error
-//        Pattern pattern = Pattern.compile("a(\\a|.)*?a", true);
-//        TestUtil.assertSame(pattern, "a\\aa");
-//        TestUtil.assertSame(pattern, "a\\a\\a\\a\\aa");
-//        TestUtil.assertSame(pattern, "aaba\\aaaaa");
-//        TestUtil.assertSame(pattern, "aa");
-//        TestUtil.assertSame(pattern, "a\\aaa");
-//        TestUtil.assertSame(pattern, "aa\\aaa");
-//        TestUtil.assertEmpty(pattern, "a");
-//        TestUtil.assertEmpty(pattern, "baaa");
-//        TestUtil.assertEmpty(pattern, "baa");
-//        TestUtil.assertEmpty(pattern, "ba");
-//        TestUtil.assertEmpty(pattern, "b\\a");
-//        TestUtil.assertSame(pattern, "aaaabaaa");
+        Pattern pattern = Pattern.compile("a(\\a|.)*?a", true);
+        TestUtil.assertSame(pattern, "a\\aa");
+        TestUtil.assertSame(pattern, "a\\a\\a\\a\\aa");
+        TestUtil.assertSame(pattern, "aaba\\aaaaa");
+        TestUtil.assertSame(pattern, "aa");
+        TestUtil.assertSame(pattern, "a\\aaa");
+        TestUtil.assertSame(pattern, "aa\\aaa");
+        TestUtil.assertEmpty(pattern, "a");
+        TestUtil.assertEmpty(pattern, "baaa");
+        TestUtil.assertEmpty(pattern, "baa");
+        TestUtil.assertEmpty(pattern, "ba");
+        TestUtil.assertEmpty(pattern, "b\\a");
+        TestUtil.assertSame(pattern, "aaaabaaa");
     }
 
     @Test
@@ -135,22 +187,34 @@ class TestFinalEach {
     @Test
     public void test5() {
         Pattern pattern = Pattern.compile("(\\{|\\}|\\[|\\]|\\(|\\)|\\+|\\-|\\*|/|=|&|\\||!|:|;|,|<|>|'|\\\"|\\.)", true);
-        TestUtil.assertSame(pattern, "abc");
-        TestUtil.assertSame(pattern, "abcde");
-        TestUtil.assertSame(pattern, "abcdef");
-        TestUtil.assertSame(pattern, "abcdefghi");
-        TestUtil.assertEmpty(pattern, "bcde");
-        TestUtil.assertEmpty(pattern, "cde");
+        TestUtil.assertSame(pattern, "(");
+        TestUtil.assertSame(pattern, ")");
+        TestUtil.assertSame(pattern, "[");
+        TestUtil.assertSame(pattern, "]");
+        TestUtil.assertSame(pattern, "{");
+        TestUtil.assertSame(pattern, "}");
+        TestUtil.assertSame(pattern, "+");
+        TestUtil.assertSame(pattern, "-");
+        TestUtil.assertSame(pattern, "*");
+        TestUtil.assertSame(pattern, "/");
+        TestUtil.assertSame(pattern, "=");
+        TestUtil.assertSame(pattern, "&");
+        TestUtil.assertSame(pattern, "|");
+        TestUtil.assertSame(pattern, "|");
+        TestUtil.assertSame(pattern, ":");
+        TestUtil.assertSame(pattern, ";");
+        TestUtil.assertSame(pattern, ",");
+        TestUtil.assertSame(pattern, "<");
+        TestUtil.assertSame(pattern, ">");
+        TestUtil.assertSame(pattern, "'");
+        TestUtil.assertSame(pattern, "\"");
+        TestUtil.assertSame(pattern, ".");
     }
 
     @Test
     public void test6() {
-        Pattern pattern = Pattern.compile("(\\b)", true);
-        TestUtil.assertSame(pattern, "zacb");
-        TestUtil.assertSame(pattern, "zab");
-        TestUtil.assertEmpty(pattern, "zb");
-        TestUtil.assertEmpty(pattern, "zaab");
-        TestUtil.assertEmpty(pattern, "za");
-        TestUtil.assertEmpty(pattern, "zac");
+        Pattern pattern = Pattern.compile("(ab\\b)", true);
+        TestUtil.assertEmpty(pattern, "abc");
+        TestUtil.assertEquals(pattern, "ab c", "ab|");
     }
 }

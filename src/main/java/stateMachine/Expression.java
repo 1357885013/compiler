@@ -178,7 +178,7 @@ public class Expression {
 
     public boolean contains(Expression e) {
         for (Node content : contents) {
-            if (content.equals(e)) return true;
+            if (content.equals(e.charAt(0))) return true;
         }
         return false;
     }

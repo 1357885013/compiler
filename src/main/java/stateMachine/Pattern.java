@@ -219,23 +219,11 @@ public class Pattern {
         trans.delete(leftState, Expression.emptyInput);
     }
 
-    private void getAllStatesCanReach(State which, Set<State> state) {
-        state.add(which);
-        LinkedHashMap<Expression, Set<State>> inputs = trans.get(which);
-        if (inputs == null || inputs.isEmpty())
-            return;
-        if (inputs.containsKey(Expression.emptyInput)) {
-            for (State eachState : inputs.get(Expression.emptyInput)) {
-                if (!state.contains(eachState))
-                    getAllStatesCanReach(eachState, state);
-            }
-        }
-    }
-
     private boolean getAllStatesCanReach(State which, Set<State> state, Set<Expression> symbols) {
         boolean isEnd = which.isEnd();
         state.add(which);
-        symbols.addAll(trans.get(which).keySet());
+        if (trans.get(which) != null)
+            symbols.addAll(trans.get(which).keySet());
         LinkedHashMap<Expression, Set<State>> inputs = trans.get(which);
         if (inputs == null || inputs.isEmpty())
             return isEnd;
@@ -279,6 +267,53 @@ public class Pattern {
         }
         newState.inputs.remove(Expression.emptyInput);
         return newState;
+    }
+
+    private String getKeyOfStates(Set<State> states) {
+        return Arrays.toString(states.stream().map(State::getIndex).sorted().toArray(Integer[]::new));
+    }
+
+    // 弄一个新的
+    private void uniteMultipleOutputStates() {
+        stateIndex = 1;
+
+        List<StateSet> progress = new LinkedList<>();
+        StateSet start = getAllStatesCanReach(trans.getStartState());
+        Map<State, Map<State, Expression>> index = new LinkedHashMap<>();
+        start.setStart(true);
+        TransformTable t = new TransformTable(start);
+        progress.add(start);
+        Map<String, State> cache = new HashMap<>();
+        while (!progress.isEmpty()) {
+            StateSet nowState = progress.get(0);
+            String nowStateKey = getKeyOfStates(nowState.states);
+            if (!cache.containsKey(nowStateKey)) {
+                // 遍历每一个输入
+                for (Expression input : nowState.inputs) {
+                    StateSet newOutState = getAllStatesCanReachBySymbol(nowState, input);
+                    String oldStateKey = getKeyOfStates(newOutState.states);
+                    if (cache.containsKey(oldStateKey)) {
+                        t.add(nowState, input, cache.get(oldStateKey));
+                    } else {
+                        progress.add(newOutState);
+                        t.add(nowState, input, newOutState);
+                        // 索引一下.
+                        Map<State, Expression> indexEach = index.getOrDefault(newOutState, new HashMap<>());
+                        indexEach.put(nowState, input);
+                        index.put(newOutState, indexEach);
+                    }
+                }
+                cache.put(getKeyOfStates(nowState.states), nowState);
+            } else {
+                for (State indexKey : index.get(nowState).keySet()) {
+                    Set<State> states = t.get(indexKey, index.get(nowState).get(indexKey));
+                    states.remove(nowState);
+                    states.add(cache.get(nowStateKey));
+                }
+            }
+            progress.remove(0);
+        }
+        this.trans = t;
     }
 
     private void progressDotAndExcept() {
@@ -381,54 +416,6 @@ public class Pattern {
             System.out.println("有边没被处理, 在. 和 [^] 阶段");
     }
 
-    private String getKeyOfStates(Set<State> states) {
-        return Arrays.toString(states.stream().map(State::getIndex).sorted().toArray(Integer[]::new));
-    }
-
-    // 弄一个新的
-    private void uniteMultipleOutputStates() {
-        stateIndex = 1;
-
-        List<StateSet> progress = new LinkedList<>();
-        StateSet start = getAllStatesCanReach(trans.getStartState());
-        Map<State, Map<State, Expression>> index = new LinkedHashMap<>();
-        start.setStart(true);
-        TransformTable t = new TransformTable(start);
-        progress.add(start);
-        Map<String, State> cache = new HashMap<>();
-        while (!progress.isEmpty()) {
-            StateSet nowState = progress.get(0);
-            String nowStateKey = getKeyOfStates(nowState.states);
-            if (!cache.containsKey(nowStateKey)) {
-                // 遍历每一个输入
-                for (Expression input : nowState.inputs) {
-                    StateSet newOutState = getAllStatesCanReachBySymbol(nowState, input);
-                    String oldStateKey = getKeyOfStates(newOutState.states);
-                    if (cache.containsKey(oldStateKey)) {
-                        t.add(nowState, input, cache.get(oldStateKey));
-                    } else {
-                        progress.add(newOutState);
-                        t.add(nowState, input, newOutState);
-                        // 索引一下.
-                        Map<State, Expression> indexEach = index.getOrDefault(newOutState, new HashMap<>());
-                        indexEach.put(nowState, input);
-                        index.put(newOutState, indexEach);
-                    }
-                }
-                cache.put(getKeyOfStates(nowState.states), nowState);
-            } else {
-                for (State indexKey : index.get(nowState).keySet()) {
-                    Set<State> states = t.get(indexKey, index.get(nowState).get(indexKey));
-                    states.remove(nowState);
-                    states.add(cache.get(nowStateKey));
-                }
-            }
-            progress.remove(0);
-        }
-        this.trans = t;
-    }
-
-    // todo : 暂时是像匹配小括号那样匹配中括号
     private int findMidBraceEnd(Expression e, int begin) {
         Stack<Boolean> braces = new Stack<Boolean>();
         if (e.charAt(begin).equalsKeyword('[')) {
@@ -530,7 +517,14 @@ public class Pattern {
                             if (next.equalsKeyword('|')) {
                                 // or 结构的第一部分
                                 // 把 已经识别处理的and结构当成or的子部分.
-                                trans.add(lastAndState, input.substring(i, nodeEnd + 1), toState);
+                                for (State state : toState) {
+                                    if (trans.get(state) == null || trans.get(state).size() == 0) {
+                                        State newEndState = State.build(stateIndex++);
+                                        newEndState.copy(state);
+                                        trans.add(lastAndState, input.substring(i, nodeEnd + 1), newEndState);
+                                    } else
+                                        trans.add(lastAndState, input.substring(i, nodeEnd + 1), state);
+                                }
                                 lastAndState = inState;
                                 i = nodeEnd + 2;
                                 continue;
@@ -549,7 +543,7 @@ public class Pattern {
                         }
 
                         // 输出中间步骤
-                        trans.draw();
+//                        trans.draw();
                     }
                 }
             }

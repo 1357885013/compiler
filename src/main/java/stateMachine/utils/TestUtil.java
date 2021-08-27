@@ -40,7 +40,7 @@ public class TestUtil {
             if (matcher.lookingAt()) { // 从区域的头部开始查找匹配,不用匹配全部
                 // 识别到了
                 if (matcher.group(0) != null)
-                    if (!matcher.group(0).equals(" "))
+                    if (!matcher.group(0).equals(""))
                         sb.append(matcher.group(0)).append("|");
                 pos = matcher.end() + 1;
             } else

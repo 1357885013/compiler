@@ -72,20 +72,20 @@ public class Matcher {
                 }
 
 
-//                int expectLength = 0;
-//                //找  .   [^abc]  ^ $
-//                for (String in : trans.get(nowState).keySet()) {
-//                    if (in.equals("_."))
-//                        temp = trans.get(nowState, in);
-//                    // todo: 可能 有的单个比别的两个合起来都长
-//                    if (in.charAt(0) == '^' && !in.substring(1).contains(String.valueOf(input))) {
-//                        if (in.length() > expectLength) {
-//                            nextStateSet = trans.get(nowState, in);
-//                            expectLength = in.length();
-//                        }
-//                    }
-//                }
-//                if (nextStateSet == null) nextStateSet = temp;
+                int expectLength = 0;
+                //找  .   [^abc]  ^ $
+                for (Expression in : trans.get(nowState).keySet()) {
+                    if (in.equalsKeyword('.'))
+                        temp = trans.get(nowState, in);
+                    // todo: 可能 有的单个比别的两个合起来都长
+                    if (in.charAt(0).equals('^') && !in.substring(1).contains(new Expression(input, false))) {
+                        if (in.length() > expectLength) {
+                            nextStateSet = trans.get(nowState, in);
+                            expectLength = in.length();
+                        }
+                    }
+                }
+                if (nextStateSet == null) nextStateSet = temp;
             }
 
             // does not have next state

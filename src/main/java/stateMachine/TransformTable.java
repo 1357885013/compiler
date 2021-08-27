@@ -215,7 +215,12 @@ public class TransformTable {
                             if (rightS.isStart()) starts.add(rightS.getIndex());
                             if (rightS.isEnd()) ends.add(rightS.getIndex());
                             String content = input.toString();
-                            if (content.equals("\\")) content = "\\\\";
+                            content = content.replace("\\", "\\\\");
+                            content = content.replace("(", "\\(");
+                            content = content.replace(")", "\\)");
+                            content = content.replace("|", "\\|");
+                            content = content.replace("-", "\\-");
+                            content = content.replace("\"", "\\\"");
                             output.append(String.valueOf(leftS.getIndex())).append(" -> ").append(String.valueOf(rightS.getIndex())).append("[ label = \"").append(content).append("\" ];\n");
                         }
                     }
