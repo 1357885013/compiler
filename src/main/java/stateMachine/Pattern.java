@@ -207,18 +207,6 @@ public class Pattern {
         return false;
     }
 
-    private void deleteEmptyLine1(State leftState) {
-        for (State rightState : trans.get(leftState, Expression.emptyInput)) {
-            if (trans.get(rightState).containsKey(Expression.emptyInput))
-                deleteEmptyLine1(rightState);
-            trans.add(leftState, trans.get(rightState));
-            if (rightState.isStart()) leftState.setStartTrue();
-            if (rightState.isEnd()) leftState.setEndTrue();
-            rightState.getGroupIndex().forEach(leftState::addGroupIndex);
-        }
-        trans.delete(leftState, Expression.emptyInput);
-    }
-
     private boolean getAllStatesCanReach(State which, Set<State> state, Set<Expression> symbols) {
         boolean isEnd = which.isEnd();
         state.add(which);
@@ -279,6 +267,7 @@ public class Pattern {
 
         List<StateSet> progress = new LinkedList<>();
         StateSet start = getAllStatesCanReach(trans.getStartState());
+        // 记录有谁指向自己, 自己替换的时候不用遍历
         Map<State, Map<State, Expression>> index = new LinkedHashMap<>();
         start.setStart(true);
         TransformTable t = new TransformTable(start);
@@ -291,8 +280,16 @@ public class Pattern {
                 // 遍历每一个输入
                 for (Expression input : nowState.inputs) {
                     StateSet newOutState = getAllStatesCanReachBySymbol(nowState, input);
+                    t.add(nowState, input, newOutState);
+                }
+                // 处理 ^
+                progressExceptAndDot(t, nowState);
+
+                for (Expression input : t.get(nowState).keySet()) {
+                    StateSet newOutState = (StateSet) t.get(nowState, input).toArray()[0];
                     String oldStateKey = getKeyOfStates(newOutState.states);
                     if (cache.containsKey(oldStateKey)) {
+                        t.delete(nowState, input);
                         t.add(nowState, input, cache.get(oldStateKey));
                     } else {
                         progress.add(newOutState);
@@ -314,6 +311,80 @@ public class Pattern {
             progress.remove(0);
         }
         this.trans = t;
+    }
+
+    private void progressExceptAndDot(TransformTable t, State nowState) {
+        // toState 事只有一个, 是stateSet
+        Map<Expression, Set<Character>> excepts = new HashMap<>();
+        char max = Character.MIN_VALUE, min = Character.MAX_VALUE;
+        StateSet states = StateSet.build(stateIndex++);
+        // 统计 except 的情况
+        for (Expression input : t.get(nowState).keySet()) {
+            // 是 ^
+            if (input.charAt(0).equalsKeyword('^')) {
+                excepts.put(input, Arrays.stream(input.substring(1).contents).map(a -> a.content).collect(Collectors.toSet()));
+                max = (char) Math.max((int) (excepts.get(input).stream().max(Character::compare).get()), (int) max);
+                min = (char) Math.min((int) (excepts.get(input).stream().min(Character::compare).get()), (int) min);
+                StateSet states1 = (StateSet) t.get(nowState, input).toArray()[0];
+                states.states.addAll(states1.states);
+            }
+        }
+        // todo: 把except加到正常的上面
+        for (Expression input : excepts.keySet()) {
+            // 是 ^
+            if (input.charAt(0).equalsKeyword('^')) {
+                for (Expression rightInput : t.get(nowState).keySet()) {
+                    // 不是本身 且 不是 .  不是 ^
+                    if (!rightInput.equals(input) && !rightInput.charAt(0).equalsKeyword('^') && !rightInput.equalsKeyword('.'))
+                        // 如果相交
+                        if (!input.substring(1).contains(rightInput))
+                            // 全部转移
+                            ((StateSet) t.get(nowState, rightInput).toArray()[0]).states.addAll(((StateSet) t.get(nowState, input).toArray()[0]).states);
+                }
+            }
+        }
+
+        if (!excepts.isEmpty() && excepts.size() > 2) {
+            // 拼接最大的
+            String allS = "_";
+            for (int c = min; c <= max; c++) {
+                allS += ((char) c);
+            }
+            Expression all = new Expression(allS);
+            // 添加最大的
+            t.add(nowState, all, states);
+
+            // 添加中间的小的
+            for (int c = min; c <= max; c++) {
+                StateSet s = StateSet.build(stateIndex++);
+                for (Expression expression : excepts.keySet()) {
+                    if (!excepts.get(expression).contains((char) c)) {
+                        s.states.addAll(((StateSet) t.get(nowState, expression).toArray()[0]).states);
+                        // 添加
+                    }
+                }
+                t.add(nowState, new Expression("_" + (char) c), s);
+            }
+
+
+            for (Expression input : excepts.keySet()) {
+                t.delete(nowState, input);
+            }
+        }
+
+        // 处理 .
+        Set<State> allState = trans.get(nowState, Expression.dot);
+        if (allState != null && !allState.isEmpty()) {
+            // 把. 指向的状态的所有输出复制到其它边指向的状态上
+            for (Expression otherInput : trans.get(nowState).keySet())
+                if (!otherInput.equalsKeyword('.'))
+                    for (State otherState : trans.get(nowState, otherInput))
+                        for (State eachAllState : allState)
+                            trans.add(otherState, trans.get(eachAllState));
+
+            // 删除后重新添加,让它排在后面
+            trans.add(nowState, Expression.dot, trans.delete(nowState, Expression.dot));
+        }
     }
 
     private void progressDotAndExcept() {
@@ -643,15 +714,6 @@ public class Pattern {
             result.add(new Expression((char) i, false));
         }
         return result;
-    }
-
-    private int getSuffixEndIndex(String input, int i) {
-        if (input.charAt(i) == '{') {
-            while (input.charAt(i) != '}') i++;
-        }
-        if (i + 1 <= input.length() - 1 && input.charAt(i + 1) == '?')
-            i++;
-        return i;
     }
 
 
