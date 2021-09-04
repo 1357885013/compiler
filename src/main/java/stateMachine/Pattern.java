@@ -29,7 +29,7 @@ public class Pattern {
         // todo: 有错误
         // todo: 合成状态时死循环
 //        pattern = Pattern.compile("//.*?(\\n|$)", true);
-        pattern = Pattern.compile("([a-b][a-b0-1]*1)|(b+2)", true); //((a|b)(a|b|0|1)*1)|(b+2)
+//        pattern = Pattern.compile("([a-b][a-b0-1]*1)|(b+2)", true); //((a|b)(a|b|0|1)*1)|(b+2)
 //        pattern = Pattern.compile("([a-b][a-b0-1]*1)", true);
 //        pattern = Pattern.compile("([a-b]*)|(b+)", true);
 //        pattern = Pattern.compile("(b*)|(b+)", true);
@@ -40,7 +40,7 @@ public class Pattern {
 //        pattern = Pattern.compile(".+bc", true);
 //        pattern = Pattern.compile("(a*|b*)*", true);
 //        pattern = Pattern.compile("([^abc]1)|([^ade]2)|([^fg]3)|([^ghijklmn]4)|[t]5", true);
-//        pattern = Pattern.compile("([^abc]1)|([^ade]2)|([^fg]3)|([^ghijklmn]4)", true);
+        pattern = Pattern.compile("([^abc]1)|([^ade]2)|([^fg]3)|([^ghijklmn]4)|(g2)|(a2)|(.9)", true);
 //        pattern = Pattern.compile("ab*?c", true);
 //        pattern = Pattern.compile("ab*(abc)|(ade)", true);
 //        pattern = Pattern.compile("cab*?",true);
@@ -275,31 +275,33 @@ public class Pattern {
         Map<String, State> cache = new HashMap<>();
         while (!progress.isEmpty()) {
             StateSet nowState = progress.get(0);
+            // 从progress队列里取出来的是一个state集.
             String nowStateKey = getKeyOfStates(nowState.states);
             if (!cache.containsKey(nowStateKey)) {
-                // 遍历每一个输入
+                // 先遍历每一个输入,得到每个输出states.
+                // todo:input 为空时
                 for (Expression input : nowState.inputs) {
                     StateSet newOutState = getAllStatesCanReachBySymbol(nowState, input);
                     t.add(nowState, input, newOutState);
                 }
                 // 处理 ^
                 progressExceptAndDot(t, nowState);
-
-                for (Expression input : t.get(nowState).keySet()) {
-                    StateSet newOutState = (StateSet) t.get(nowState, input).toArray()[0];
-                    String oldStateKey = getKeyOfStates(newOutState.states);
-                    if (cache.containsKey(oldStateKey)) {
-                        t.delete(nowState, input);
-                        t.add(nowState, input, cache.get(oldStateKey));
-                    } else {
-                        progress.add(newOutState);
-                        t.add(nowState, input, newOutState);
-                        // 索引一下.
-                        Map<State, Expression> indexEach = index.getOrDefault(newOutState, new HashMap<>());
-                        indexEach.put(nowState, input);
-                        index.put(newOutState, indexEach);
+                if (t.get(nowState) != null)
+                    for (Expression input : new HashSet<>(t.get(nowState).keySet())) {
+                        StateSet newOutState = (StateSet) t.get(nowState, input).toArray()[0];
+                        String oldStateKey = getKeyOfStates(newOutState.states);
+                        if (cache.containsKey(oldStateKey)) {
+                            t.delete(nowState, input);
+                            t.add(nowState, input, cache.get(oldStateKey));
+                        } else {
+                            progress.add(newOutState);
+                            t.add(nowState, input, newOutState);
+                            // 索引一下.
+                            Map<State, Expression> indexEach = index.getOrDefault(newOutState, new HashMap<>());
+                            indexEach.put(nowState, input);
+                            index.put(newOutState, indexEach);
+                        }
                     }
-                }
                 cache.put(getKeyOfStates(nowState.states), nowState);
             } else {
                 for (State indexKey : index.get(nowState).keySet()) {
@@ -319,16 +321,18 @@ public class Pattern {
         char max = Character.MIN_VALUE, min = Character.MAX_VALUE;
         StateSet states = StateSet.build(stateIndex++);
         // 统计 except 的情况
-        for (Expression input : t.get(nowState).keySet()) {
-            // 是 ^
-            if (input.charAt(0).equalsKeyword('^')) {
-                excepts.put(input, Arrays.stream(input.substring(1).contents).map(a -> a.content).collect(Collectors.toSet()));
-                max = (char) Math.max((int) (excepts.get(input).stream().max(Character::compare).get()), (int) max);
-                min = (char) Math.min((int) (excepts.get(input).stream().min(Character::compare).get()), (int) min);
-                StateSet states1 = (StateSet) t.get(nowState, input).toArray()[0];
-                states.states.addAll(states1.states);
+        if (t.get(nowState) != null)
+            for (Expression input : t.get(nowState).keySet()) {
+                // 是 ^
+                if (input.charAt(0).equalsKeyword('^')) {
+                    excepts.put(input, Arrays.stream(input.substring(1).contents).map(a -> a.content).collect(Collectors.toSet()));
+                    max = (char) Math.max((int) (excepts.get(input).stream().max(Character::compare).get()), (int) max);
+                    min = (char) Math.min((int) (excepts.get(input).stream().min(Character::compare).get()), (int) min);
+                    StateSet states1 = (StateSet) t.get(nowState, input).toArray()[0];
+                    states.states.addAll(states1.states);
+                    states.inputs.addAll(states1.inputs);
+                }
             }
-        }
         // todo: 把except加到正常的上面
         for (Expression input : excepts.keySet()) {
             // 是 ^
@@ -337,16 +341,17 @@ public class Pattern {
                     // 不是本身 且 不是 .  不是 ^
                     if (!rightInput.equals(input) && !rightInput.charAt(0).equalsKeyword('^') && !rightInput.equalsKeyword('.'))
                         // 如果相交
-                        if (!input.substring(1).contains(rightInput))
-                            // 全部转移
+                        if (!input.substring(1).contains(rightInput)) { // 全部转移
                             ((StateSet) t.get(nowState, rightInput).toArray()[0]).states.addAll(((StateSet) t.get(nowState, input).toArray()[0]).states);
+                            ((StateSet) t.get(nowState, rightInput).toArray()[0]).inputs.addAll(((StateSet) t.get(nowState, input).toArray()[0]).inputs);
+                        }
                 }
             }
         }
 
         if (!excepts.isEmpty() && excepts.size() > 2) {
             // 拼接最大的
-            String allS = "_";
+            String allS = "^";
             for (int c = min; c <= max; c++) {
                 allS += ((char) c);
             }
@@ -360,6 +365,7 @@ public class Pattern {
                 for (Expression expression : excepts.keySet()) {
                     if (!excepts.get(expression).contains((char) c)) {
                         s.states.addAll(((StateSet) t.get(nowState, expression).toArray()[0]).states);
+                        s.inputs.addAll(((StateSet) t.get(nowState, expression).toArray()[0]).inputs);
                         // 添加
                     }
                 }

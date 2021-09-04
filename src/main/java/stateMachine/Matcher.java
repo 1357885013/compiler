@@ -59,32 +59,40 @@ public class Matcher {
         while (loc <= this.end) {
             temp = null;
             input = this.input.charAt(loc);
-            Set<State> nextStateSet = trans.get(nowState, new Expression(new Expression.Node(input, false)));
             LinkedHashMap<Expression, Set<State>> inputs = trans.get(nowState);
 
-            if (nextStateSet == null && trans.get(nowState) != null) {
+            // 查找下一个状态
+            Set<State> nextStateSet = trans.get(nowState, new Expression(new Expression.Node(input, false)));
 
+            if (nextStateSet == null && trans.get(nowState) != null) {
                 for (Expression input1 : inputs.keySet()) {
-                    if ((input1.charAt(0).content == '^' && (!input1.substring(1).contains(new Expression(new Expression.Node(input, false))))) || input1.equalsKeyword('.')) {
+                    // 查找 except 总式
+                    if ((input1.charAt(0).content == '^' && (!input1.substring(1).contains(new Expression(new Expression.Node(input, false)))))) {
                         nextStateSet = trans.get(nowState, input1);
                         break;
                     }
-                }
-
-
-                int expectLength = 0;
-                //找  .   [^abc]  ^ $
-                for (Expression in : trans.get(nowState).keySet()) {
-                    if (in.equalsKeyword('.'))
-                        temp = trans.get(nowState, in);
-                    // todo: 可能 有的单个比别的两个合起来都长
-                    if (in.charAt(0).equals('^') && !in.substring(1).contains(new Expression(input, false))) {
-                        if (in.length() > expectLength) {
-                            nextStateSet = trans.get(nowState, in);
-                            expectLength = in.length();
-                        }
+                    // 查找 except 子式
+                    if (nextStateSet == null && (input1.charAt(0).content == '_' && (input1.charAt(1).content == input))) {
+                        nextStateSet = trans.get(nowState, input1);
                     }
+                    // 缓存dot
+                    if (input1.equalsKeyword('.'))
+                        temp = trans.get(nowState, input1);
                 }
+
+//                int expectLength = 0;
+//                //找  .   [^abc]  ^ $
+//                for (Expression in : trans.get(nowState).keySet()) {
+//                    if (in.equalsKeyword('.'))
+//                        temp = trans.get(nowState, in);
+//                    // todo: 可能 有的单个比别的两个合起来都长
+//                    if (in.charAt(0).equals('^') && !in.substring(1).contains(new Expression(input, false))) {
+//                        if (in.length() > expectLength) {
+//                            nextStateSet = trans.get(nowState, in);
+//                            expectLength = in.length();
+//                        }
+//                    }
+//                }
                 if (nextStateSet == null) nextStateSet = temp;
             }
 
