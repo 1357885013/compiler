@@ -52,6 +52,7 @@ class TestFinalEach {
         Pattern pattern = Pattern.compile("([abc][abc01]*)| ", true);
         TestUtil.assertSame(pattern, " ");
     }
+
     @Test
     public void test1112111() {
         Pattern pattern = Pattern.compile(" *", true);
@@ -59,7 +60,7 @@ class TestFinalEach {
         TestUtil.assertSame(pattern, "  ");
         TestUtil.assertSame(pattern, "   ");
         TestUtil.assertSame(pattern, "                       ");
-        TestUtil.assertEmpty(pattern,"abc");
+        TestUtil.assertEmpty(pattern, "abc");
     }
 
     @Test
@@ -212,9 +213,23 @@ class TestFinalEach {
     }
 
     @Test
-    public void test6() {
-        Pattern pattern = Pattern.compile("(ab\\b)", true);
-        TestUtil.assertEmpty(pattern, "abc");
-        TestUtil.assertEquals(pattern, "ab c", "ab|");
+    public void test41() {
+        Pattern pattern = Pattern.compile("(\"((\\\\\")|[^\"])*?\")", true);
+        TestUtil.assertSame(pattern, "\"this is a words\"");
+        TestUtil.assertSame(pattern, "\"this is \\\"\\\"\\\" a\\\" words\"");
+        TestUtil.assertSame(pattern, "\"this is a " +
+                "\n" +
+                "" +
+                "words\"");
+        TestUtil.assertEquals(pattern, "\"this is a words\"\"this is a words\"\"this is a words\"", "\"this is a words\"|\"this is a words\"|\"this is a words\"|");
+        TestUtil.assertSame(pattern, "\"this is a words\"");
+        TestUtil.assertSame(pattern, "\"this is a words\"");
     }
+
+//    @Test
+//    public void test6() {
+//        Pattern pattern = Pattern.compile("(ab\\b)", true);
+//        TestUtil.assertEmpty(pattern, "abc");
+//        TestUtil.assertEquals(pattern, "ab c", "ab|");
+//    }
 }
